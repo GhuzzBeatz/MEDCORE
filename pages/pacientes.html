@@ -1,0 +1,219 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header"><div><div class="page-title">👤 Pacientes</div><div class="page-sub">Cadastro e ficha completa dos pacientes</div></div></div>
+
+  <div class="form-card">
+    <div class="form-card-title" id="formTitulo">Novo Paciente</div>
+    <div class="form-row">
+      <div class="form-group fg3"><label class="form-label">Nome Completo *</label><input id="nome" placeholder="Nome completo do paciente"></div>
+      <div class="form-group fg1"><label class="form-label">Nascimento</label><input type="date" id="nascimento"></div>
+      <div class="form-group fg1"><label class="form-label">Sexo</label>
+        <select id="sexo"><option value="">—</option><option>Masculino</option><option>Feminino</option><option>Outro</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group fg1"><label class="form-label">CPF</label><input id="cpf" placeholder="000.000.000-00"></div>
+      <div class="form-group fg1"><label class="form-label">RG</label><input id="rg" placeholder="00.000.000-0"></div>
+      <div class="form-group fg2"><label class="form-label">Telefone</label><input id="telefone" placeholder="(11) 99999-9999"></div>
+      <div class="form-group fg2"><label class="form-label">E-mail</label><input id="email" type="email" placeholder="email@exemplo.com"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group fg3"><label class="form-label">Endereço</label><input id="endereco" placeholder="Rua, número, bairro, cidade"></div>
+      <div class="form-group fg2"><label class="form-label">Convênio</label>
+        <select id="convenio">
+          <option value="Particular">Particular</option>
+          <option value="UNIMED">UNIMED</option><option value="AMIL">AMIL</option>
+          <option value="Bradesco Saúde">Bradesco Saúde</option><option value="SulAmérica">SulAmérica</option>
+          <option value="SUS">SUS</option><option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group fg1"><label class="form-label">Nº Carteirinha</label><input id="num_convenio" placeholder="000000000"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1"><label class="form-label">Observações / Alergias</label><input id="obs" placeholder="Alergias a medicamentos, condições especiais..."></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:13px">
+      <button class="btn btn-primary" id="btnSalvar" onclick="salvar()">+ Salvar Paciente</button>
+      <button class="btn-cancel" id="btnCancelar" onclick="cancelar()">Cancelar</button>
+    </div>
+    <div class="aviso av-erro" id="avisoErro"></div>
+    <div class="aviso av-ok"   id="avisoOk"></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="tbl-top">
+      <span class="tbl-title">Pacientes Cadastrados</span>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input class="search-box" id="busca" placeholder="🔍 Nome, CPF ou telefone..." oninput="render()" style="width:230px">
+        <span class="tbl-count" id="count"></span>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Nome</th><th>Nascimento</th><th>CPF</th><th>Telefone</th><th>Convênio</th><th>Obs</th><th style="text-align:center">Ações</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+aplicarTemaAtual()
+const { listarPacientes, getPaciente, inserirPaciente, atualizarPaciente, deletarPaciente, getConfig } = require('../js/db.js')
+let editandoId = null
+
+function salvar() {
+  const nome = document.getElementById('nome').value.trim()
+  if (!nome) return aviso('erro','Informe o nome do paciente.')
+  const d = { nome, nascimento:document.getElementById('nascimento').value, cpf:document.getElementById('cpf').value.trim(), rg:document.getElementById('rg').value.trim(), sexo:document.getElementById('sexo').value, telefone:document.getElementById('telefone').value.trim(), email:document.getElementById('email').value.trim(), endereco:document.getElementById('endereco').value.trim(), convenio:document.getElementById('convenio').value, num_convenio:document.getElementById('num_convenio').value.trim(), obs:document.getElementById('obs').value.trim() }
+  if (editandoId) { atualizarPaciente({...d,id:editandoId}); aviso('ok','Paciente atualizado!'); cancelar() }
+  else { inserirPaciente(d); aviso('ok',`${nome} cadastrado(a)!`); limpar() }
+  render()
+}
+
+function editar(id) {
+  const p = getPaciente(id); if (!p) return
+  ['nome','nascimento','cpf','rg','sexo','telefone','email','endereco','convenio','num_convenio','obs'].forEach(f=>{
+    const el = document.getElementById(f); if(el) el.value = p[f]||''
+  })
+  document.getElementById('formTitulo').textContent    = '✏️ Editar Paciente'
+  document.getElementById('btnSalvar').textContent     = '💾 Salvar Alteração'
+  document.getElementById('btnCancelar').style.display = 'inline-flex'
+  editandoId = id; window.scrollTo({top:0,behavior:'smooth'})
+}
+
+function cancelar() { limpar(); editandoId=null; document.getElementById('formTitulo').textContent='Novo Paciente'; document.getElementById('btnSalvar').textContent='+ Salvar Paciente'; document.getElementById('btnCancelar').style.display='none' }
+function limpar() { ['nome','nascimento','cpf','rg','telefone','email','endereco','num_convenio','obs'].forEach(i=>document.getElementById(i).value=''); document.getElementById('sexo').value=''; document.getElementById('convenio').value='Particular' }
+function excluir(id) { confirmar('Excluir este paciente? Esta ação não pode ser desfeita.', ok => { if(ok) { deletarPaciente(id); render() } }) }
+
+function calcIdade(nasc) {
+  if (!nasc) return ''
+  const d = new Date(nasc), h = new Date()
+  let a = h.getFullYear()-d.getFullYear()
+  if (h.getMonth()<d.getMonth()||(h.getMonth()===d.getMonth()&&h.getDate()<d.getDate())) a--
+  return ` (${a} anos)`
+}
+
+function escHtml(valor) {
+  return String(valor || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+function imprimirFicha(id) {
+  const p = getPaciente(id)
+  if (!p) return aviso('erro', 'Paciente nao encontrado.')
+
+  const clinicaNome = getConfig('clinica_nome', 'Clinica')
+  const clinicaCnpj = getConfig('clinica_cnpj', '')
+  const clinicaEndereco = getConfig('clinica_endereco', '')
+  const clinicaTelefone = getConfig('clinica_telefone', '')
+  const clinicaEmail = getConfig('clinica_email', '')
+
+  const html = `
+  <!DOCTYPE html>
+  <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <title>Ficha do Paciente</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 26px; color: #111; }
+      .topo { border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 20px; }
+      .titulo { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+      .sub { font-size: 12px; color: #555; line-height: 1.6; }
+      .bloco { border: 1px solid #ddd; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+      .bloco h3 { margin: 0 0 10px; font-size: 14px; }
+      .linha { display: flex; gap: 16px; margin-bottom: 8px; }
+      .campo { flex: 1; font-size: 13px; line-height: 1.5; }
+      .lbl { color: #444; font-weight: 700; display: block; font-size: 11px; text-transform: uppercase; }
+      .assinatura { margin-top: 28px; }
+      .rodape { margin-top: 18px; font-size: 11px; color: #666; }
+      @media print { button { display: none; } body { margin: 12mm; } }
+    </style>
+  </head>
+  <body>
+    <div class="topo">
+      <div class="titulo">Ficha do Paciente</div>
+      <div class="sub">
+        <div><b>${escHtml(clinicaNome)}</b></div>
+        ${clinicaCnpj ? `<div>CNPJ: ${escHtml(clinicaCnpj)}</div>` : ''}
+        ${clinicaEndereco ? `<div>${escHtml(clinicaEndereco)}</div>` : ''}
+        <div>${escHtml(clinicaTelefone)} ${clinicaEmail ? ` | ${escHtml(clinicaEmail)}` : ''}</div>
+      </div>
+    </div>
+
+    <div class="bloco">
+      <h3>Dados Cadastrais</h3>
+      <div class="linha">
+        <div class="campo"><span class="lbl">Nome</span>${escHtml(p.nome || '-')}</div>
+        <div class="campo"><span class="lbl">Nascimento</span>${p.nascimento ? `${fmtData(p.nascimento)}${calcIdade(p.nascimento)}` : '-'}</div>
+      </div>
+      <div class="linha">
+        <div class="campo"><span class="lbl">CPF</span>${escHtml(p.cpf || '-')}</div>
+        <div class="campo"><span class="lbl">RG</span>${escHtml(p.rg || '-')}</div>
+        <div class="campo"><span class="lbl">Sexo</span>${escHtml(p.sexo || '-')}</div>
+      </div>
+      <div class="linha">
+        <div class="campo"><span class="lbl">Telefone</span>${escHtml(p.telefone || '-')}</div>
+        <div class="campo"><span class="lbl">E-mail</span>${escHtml(p.email || '-')}</div>
+      </div>
+      <div class="linha">
+        <div class="campo"><span class="lbl">Endereco</span>${escHtml(p.endereco || '-')}</div>
+      </div>
+    </div>
+
+    <div class="bloco">
+      <h3>Dados do Convenio</h3>
+      <div class="linha">
+        <div class="campo"><span class="lbl">Convenio</span>${escHtml(p.convenio || '-')}</div>
+        <div class="campo"><span class="lbl">Numero da Carteirinha</span>${escHtml(p.num_convenio || '-')}</div>
+      </div>
+    </div>
+
+    <div class="bloco">
+      <h3>Observacoes</h3>
+      <div style="font-size:13px;line-height:1.6;min-height:56px">${escHtml(p.obs || '-')}</div>
+    </div>
+
+    <div class="assinatura">
+      <div style="width:320px;border-top:1px solid #333;padding-top:6px;font-size:12px">Assinatura do paciente / responsavel</div>
+    </div>
+
+    <div class="rodape">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+  </body>
+  </html>`
+
+  const w = window.open('', '_blank')
+  if (!w) return aviso('erro', 'Nao foi possivel abrir a janela de impressao.')
+  w.document.write(html)
+  w.document.close()
+  setTimeout(() => w.print(), 450)
+}
+
+function render() {
+  const busca = (document.getElementById('busca')?.value||'').toLowerCase()
+  const lista = listarPacientes(busca)
+  document.getElementById('count').textContent = listarPacientes().length+' paciente(s)'
+  document.getElementById('tbody').innerHTML = lista.length ? lista.map(p=>`
+    <tr>
+      <td><b style="color:var(--fg)">${p.nome}</b><span style="font-size:11px;color:var(--muted)"> ${p.sexo?'· '+p.sexo:''}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${p.nascimento?fmtData(p.nascimento)+calcIdade(p.nascimento):'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${p.cpf||'—'}</td>
+      <td>${p.telefone||'—'}</td>
+      <td><span class="badge ${p.convenio==='Particular'?'b-blue':'b-green'}">${p.convenio||'—'}</span></td>
+      <td style="font-size:12px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.obs||'—'}</td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="btn-edit" onclick="imprimirFicha(${p.id})" title="Imprimir ficha">Ficha</button>
+        <button class="btn-edit" onclick="editar(${p.id})">✏️</button>
+        <button class="btn-danger" onclick="excluir(${p.id})">🗑️</button>
+      </td>
+    </tr>`).join('')
+  : '<tr><td colspan="7" class="empty">Nenhum paciente encontrado.</td></tr>'
+}
+render()
+</script>
+</body></html>
+
+

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header"><div><div class="page-title">📦 Estoque</div><div class="page-sub">Medicamentos, insumos e materiais da clínica</div></div></div>
+
+  <div class="form-card">
+    <div class="form-card-title" id="formTitulo">Novo Item</div>
+    <div class="form-row">
+      <div class="form-group fg3"><label class="form-label">Nome do Item *</label><input id="nome" placeholder="Ex: Dipirona 500mg, Seringa 5ml..."></div>
+      <div class="form-group fg2"><label class="form-label">Categoria</label><input id="categoria" placeholder="Ex: Medicamento, Material, EPI..."></div>
+      <div class="form-group fg1"><label class="form-label">Unidade</label><input id="unidade" placeholder="un, cx, amp, ml..."></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group fg1"><label class="form-label">Quantidade Atual</label><input type="number" id="quantidade" placeholder="0" min="0" step="0.01"></div>
+      <div class="form-group fg1"><label class="form-label">Qtd Mínima</label><input type="number" id="qtd_minima" placeholder="0" min="0" step="0.01"></div>
+      <div class="form-group fg1"><label class="form-label">Valor Unitário</label><input type="number" id="valor_unit" placeholder="0,00" min="0" step="0.01"></div>
+      <div class="form-group fg1"><label class="form-label">Validade</label><input type="date" id="validade"></div>
+      <div class="form-group fg2"><label class="form-label">Fornecedor</label><input id="fornecedor" placeholder="Nome do fornecedor"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1"><label class="form-label">Observações</label><input id="obs" placeholder="Lote, localização no estoque..."></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn btn-primary" id="btnSalvar" onclick="salvar()">+ Salvar Item</button>
+      <button class="btn-cancel" id="btnCancelar" onclick="cancelar()">Cancelar</button>
+    </div>
+    <div class="aviso av-erro" id="avisoErro"></div>
+    <div class="aviso av-ok"   id="avisoOk"></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="tbl-top">
+      <span class="tbl-title">Itens em Estoque</span>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input class="search-box" id="busca" placeholder="🔍 Nome ou categoria..." oninput="render()" style="width:210px">
+        <select class="search-box" id="filtroAlerta" onchange="render()" style="width:160px">
+          <option value="">Todos os itens</option>
+          <option value="alerta">⚠️ Apenas alertas</option>
+        </select>
+        <span class="tbl-count" id="count"></span>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Item</th><th>Categoria</th><th style="text-align:center">Qtd</th><th style="text-align:center">Mínimo</th><th>Validade</th><th>Fornecedor</th><th style="text-align:right">Vlr Unit.</th><th style="text-align:center">Ações</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+aplicarTemaAtual()
+const { listarEstoque, getEstoqueItem, inserirEstoque, atualizarEstoque, deletarEstoque } = require('../js/db.js')
+let editandoId = null
+
+function salvar() {
+  const nome = document.getElementById('nome').value.trim()
+  if (!nome) return aviso('erro','Informe o nome do item.')
+  const d = { nome, categoria:document.getElementById('categoria').value.trim(), unidade:document.getElementById('unidade').value.trim(), quantidade:Number(document.getElementById('quantidade').value||0), qtd_minima:Number(document.getElementById('qtd_minima').value||0), valor_unit:Number(document.getElementById('valor_unit').value||0), validade:document.getElementById('validade').value||null, fornecedor:document.getElementById('fornecedor').value.trim(), obs:document.getElementById('obs').value.trim() }
+  if (editandoId) { atualizarEstoque({...d,id:editandoId}); aviso('ok','Item atualizado!'); cancelar() }
+  else { inserirEstoque(d); aviso('ok',`"${nome}" adicionado!`); limpar() }
+  render()
+}
+
+function editar(id) {
+  const i = getEstoqueItem(id); if(!i) return
+  ['nome','categoria','unidade','obs','fornecedor'].forEach(f=>{const el=document.getElementById(f);if(el)el.value=i[f]||''})
+  document.getElementById('quantidade').value  = i.quantidade||0
+  document.getElementById('qtd_minima').value  = i.qtd_minima||0
+  document.getElementById('valor_unit').value  = i.valor_unit||0
+  document.getElementById('validade').value    = i.validade||''
+  document.getElementById('formTitulo').textContent    = '✏️ Editar Item'
+  document.getElementById('btnSalvar').textContent     = '💾 Salvar Alteração'
+  document.getElementById('btnCancelar').style.display = 'inline-flex'
+  editandoId = id; window.scrollTo({top:0,behavior:'smooth'})
+}
+
+function cancelar() { limpar(); editandoId=null; document.getElementById('formTitulo').textContent='Novo Item'; document.getElementById('btnSalvar').textContent='+ Salvar Item'; document.getElementById('btnCancelar').style.display='none' }
+function limpar()   { ['nome','categoria','unidade','quantidade','qtd_minima','valor_unit','validade','fornecedor','obs'].forEach(i=>{const el=document.getElementById(i);if(el)el.value=''}) }
+function excluir(id){ confirmar('Excluir este item do estoque? Esta ação não pode ser desfeita.', ok => { if(ok) { deletarEstoque(id); render() } }) }
+
+function render() {
+  const busca  = (document.getElementById('busca')?.value||'').toLowerCase()
+  const alerta = document.getElementById('filtroAlerta')?.value
+  let lista    = listarEstoque(busca)
+  if (alerta==='alerta') lista = lista.filter(e=>Number(e.quantidade||0)<=Number(e.qtd_minima||0))
+  document.getElementById('count').textContent = listarEstoque().length+' item(s)'
+
+  document.getElementById('tbody').innerHTML = lista.length ? lista.map(e=>{
+    const venc  = e.validade && new Date(e.validade) < new Date()
+    const alert = Number(e.quantidade||0) <= Number(e.qtd_minima||0)
+    return `<tr>
+      <td><b style="color:var(--fg)">${e.nome}</b>${e.obs?`<br><span style="font-size:11px;color:var(--muted)">${e.obs}</span>`:''}</td>
+      <td><span class="badge b-teal">${e.categoria||'—'}</span></td>
+      <td style="text-align:center"><span class="badge ${alert?'b-red':'b-green'}">${e.quantidade||0} ${e.unidade||''} ${alert?'⚠':'✓'}</span></td>
+      <td style="text-align:center;color:var(--muted);font-size:12px">${e.qtd_minima||0} ${e.unidade||''}</td>
+      <td style="font-size:12px;color:${venc?'var(--red)':'var(--muted)'}">${e.validade?fmtData(e.validade)+(venc?' ⚠':''):'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${e.fornecedor||'—'}</td>
+      <td style="text-align:right;color:var(--fg2);font-weight:600">${e.valor_unit?fmtMoeda(e.valor_unit):'—'}</td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="btn-edit" onclick="editar(${e.id})">✏️</button>
+        <button class="btn-danger" onclick="excluir(${e.id})">🗑️</button>
+      </td>
+    </tr>`
+  }).join('')
+  : '<tr><td colspan="8" class="empty">Nenhum item encontrado.</td></tr>'
+}
+render()
+</script>
+</body></html>

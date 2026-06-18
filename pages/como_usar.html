@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<script>document.addEventListener("DOMContentLoaded",()=>{if(typeof aplicarTemaAtual==="function")aplicarTemaAtual()})</script>
+<div class="page-wrap">
+  <div class="page-header"><div><div class="page-title">📖 Como Usar</div><div class="page-sub">Guia completo do MedCore</div></div></div>
+
+  <div class="info-sec"><h3>1. Configurações Iniciais</h3>
+    <div class="info-step"><div class="step-num">1</div><div class="step-txt">Acesse <b>Configurações</b> e preencha os dados da sua clínica — nome, CNPJ e endereço. Esses dados aparecem no cabeçalho de todos os PDFs gerados.</div></div>
+    <div class="info-step"><div class="step-num">2</div><div class="step-txt">Acesse <b>Médicos</b> e cadastre todos os profissionais da clínica com nome, CRM e especialidade.</div></div>
+  </div>
+
+  <div class="info-sec"><h3>2. Cadastro de Pacientes</h3>
+    <div class="info-step"><div class="step-num">1</div><div class="step-txt">Em <b>Pacientes</b>, cadastre nome, CPF, data de nascimento, convênio e observações como alergias.</div></div>
+    <div class="info-step"><div class="step-num">2</div><div class="step-txt">Use a busca por nome, CPF ou telefone para encontrar pacientes rapidamente.</div></div>
+  </div>
+
+  <div class="info-sec"><h3>3. Agenda e Consultas</h3>
+    <div class="info-step"><div class="step-num">1</div><div class="step-txt">Em <b>Agenda</b>, registre data, hora, paciente (autocomplete), médico, tipo e valor da consulta.</div></div>
+    <div class="info-step"><div class="step-num">2</div><div class="step-txt">Os status disponíveis são: <b>Agendado → Confirmado → Em Atendimento → Concluído</b>. Ao marcar como Concluído, o valor entra automaticamente no Financeiro.</div></div>
+    <div class="info-step"><div class="step-num">3</div><div class="step-txt">Use os filtros de data, médico e status para visualizar a agenda de forma organizada.</div></div>
+  </div>
+
+  <div class="info-sec"><h3>4. Prontuários</h3>
+    <div class="info-step"><div class="step-num">1</div><div class="step-txt">Em <b>Prontuários</b>, busque o paciente e abra o histórico clínico completo dele.</div></div>
+    <div class="info-step"><div class="step-num">2</div><div class="step-txt">Registre sinais vitais (peso, pressão, temperatura, FC), queixa principal, história, exame físico, diagnóstico, conduta e prescrição.</div></div>
+    <div class="info-step"><div class="step-num">3</div><div class="step-txt">Clique no ícone 👁️ para ver o prontuário completo de qualquer consulta anterior.</div></div>
+  </div>
+
+  <div class="info-sec"><h3>5. Emissão de ASO</h3>
+    <div class="info-step"><div class="step-num">1</div><div class="step-txt">Em <b>Emitir ASO</b>, preencha os dados da empresa, do trabalhador, selecione os riscos ocupacionais e os exames realizados.</div></div>
+    <div class="info-step"><div class="step-num">2</div><div class="step-txt">Busque o trabalhador no campo de paciente — o CPF, RG e nascimento são preenchidos automaticamente se estiver cadastrado.</div></div>
+    <div class="info-step"><div class="step-num">3</div><div class="step-txt">Clique em <b>Gerar PDF do ASO</b> para exportar o documento conforme NR-07. O sistema salva automaticamente no histórico de ASOs emitidos.</div></div>
+  </div>
+
+  <div class="info-sec"><h3>6. Receituário</h3>
+    <div class="info-step"><div class="step-num">1</div><div class="step-txt">Em <b>Receituário</b>, selecione o paciente e o médico. A pré-visualização é atualizada em tempo real.</div></div>
+    <div class="info-step"><div class="step-num">2</div><div class="step-txt">Adicione quantos medicamentos precisar, com nome, quantidade e posologia. Clique em <b>Gerar PDF</b> para salvar.</div></div>
+  </div>
+
+  <div class="info-sec"><h3>7. Financeiro</h3>
+    <div class="info-step"><div class="step-num">1</div><div class="step-txt">Consultas marcadas como <b>Concluídas</b> na agenda entram automaticamente como Receita no financeiro.</div></div>
+    <div class="info-step"><div class="step-num">2</div><div class="step-txt">Registre despesas manualmente (aluguel, materiais, etc). Use o filtro por mês para ver o fluxo de caixa detalhado.</div></div>
+  </div>
+
+  <div class="info-sec"><h3>8. Tema Claro e Escuro</h3>
+    <div class="info-step"><div class="step-num">1</div><div class="step-txt">No rodapé do menu, clique em <b>🌙 Modo Escuro</b> ou <b>☀️ Modo Claro</b> para alternar o tema conforme sua preferência. A escolha é salva automaticamente.</div></div>
+  </div>
+
+  <div class="info-sec"><h3>9. Painel de Chamada — TV da Sala de Espera</h3>
+    <p style="font-size:13px;color:var(--fg2);line-height:1.8;margin-bottom:14px">
+      O MedCore permite chamar o paciente pelo nome diretamente em uma TV ou monitor na sala de espera. Veja como configurar:
+    </p>
+
+    <div style="background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:var(--fg2);line-height:1.8">
+      💡 <b>O que você precisa:</b> computador com o MedCore + uma TV ou segundo monitor ligado a ele (via HDMI, por exemplo).
+    </div>
+
+    <div class="info-step"><div class="step-num">1</div><div class="step-txt"><b>Conecte a TV ou um segundo monitor</b> ao computador da recepção via cabo HDMI. Não precisa de computador na TV — ela funciona como um segundo display.</div></div>
+    <div class="info-step"><div class="step-num">2</div><div class="step-txt">No menu lateral do MedCore, clique em <b>📺 Painel TV</b>. Uma nova janela será aberta com a tela do painel.</div></div>
+    <div class="info-step"><div class="step-num">3</div><div class="step-txt"><b>Arraste essa janela</b> para a TV ou monitor secundário e pressione <b>F11</b> para colocar em tela cheia. A partir daí a TV fica exibindo o painel e o computador continua na agenda normalmente.</div></div>
+    <div class="info-step"><div class="step-num">4</div><div class="step-txt">Quando chegar a hora de atender, vá até a <b>Agenda</b>, encontre o paciente e clique no botão <span style="background:var(--teal);color:#fff;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700">📢 Chamar</span> na linha dele.</div></div>
+    <div class="info-step"><div class="step-num">5</div><div class="step-txt">O nome do paciente aparece <b>instantaneamente na TV</b> em letras grandes, junto com o nome do médico e o tipo de consulta. Os pacientes na sala de espera veem e se dirigem ao consultório.</div></div>
+
+    <div style="background:var(--green-bg);border:1px solid rgba(5,150,105,.2);border-radius:10px;padding:13px 16px;margin-top:6px;font-size:13px;color:var(--fg2);line-height:1.8">
+      ✅ <b>Dica:</b> A TV fica atualizando sozinha a cada 2 segundos. Você não precisa fazer mais nada — basta clicar em Chamar e o nome já aparece na tela.
+    </div>
+  </div>
+</div>
+</body></html>

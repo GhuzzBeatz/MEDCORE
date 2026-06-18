@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header">
+    <div><div class="page-title">🔬 Banco de Exames e Medicamentos</div><div class="page-sub">Modelos pré-cadastrados para agilizar prontuários e receituários</div></div>
+  </div>
+
+  <div style="background:var(--primary-bg);border:2px solid var(--primary-bdr);border-radius:12px;padding:13px 16px;margin-bottom:14px;font-size:13px;color:var(--fg2)"><b style="color:var(--primary2)">📌 Para que serve este banco?</b><br>Cadastre aqui os <b>exames</b> e <b>medicamentos</b> que você mais usa. Eles ficam disponíveis como atalho rápido no Prontuário e Receituário. O histórico de atendimentos fica na aba <b>Histórico Geral</b>.</div>
+
+  <div style="background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--fg2);margin-bottom:16px;line-height:1.7">
+    💡 Cadastre aqui os exames que você solicita com frequência. Na hora de solicitar para um paciente (em <b>Prontuários → Solicitar Exames</b>), é só buscar e clicar — sem digitar tudo de novo.
+  </div>
+
+  <!-- FORM -->
+  <div class="form-card">
+    <div class="form-card-title" id="formTitulo">Novo Exame</div>
+    <div class="form-row">
+      <div class="form-group fg3"><label class="form-label">Nome do Exame *</label><input id="nome" placeholder="Ex: Hemograma Completo, Glicemia em Jejum, ECG..."></div>
+      <div class="form-group fg2"><label class="form-label">Categoria</label>
+        <select id="categoria">
+          <option value="">Selecione...</option>
+          <option>Laboratorial</option>
+          <option>Imagem</option>
+          <option>Cardiológico</option>
+          <option>Neurológico</option>
+          <option>Oftalmológico</option>
+          <option>Audiométrico</option>
+          <option>Espirométrico</option>
+          <option>Ocupacional</option>
+          <option>Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:10px">
+      <label class="form-label">Instruções ao Paciente (preparo, jejum, etc.)</label>
+      <textarea id="instrucoes" style="min-height:70px" placeholder="Ex: Jejum de 8 horas. Não praticar atividades físicas nas 24h anteriores."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn btn-primary" id="btnSalvar" onclick="salvar()">+ Salvar Exame</button>
+      <button class="btn-cancel" id="btnCancelar" onclick="cancelar()">Cancelar</button>
+    </div>
+    <div class="aviso av-ok"   id="avisoOk"></div>
+    <div class="aviso av-erro" id="avisoErro"></div>
+  </div>
+
+  <!-- TABELA -->
+  <div class="tbl-wrap">
+    <div class="tbl-top">
+      <span class="tbl-title">Exames Cadastrados</span>
+      <div style="display:flex;gap:10px;align-items:center">
+        <select class="search-box" id="filtroCategoria" onchange="render()" style="width:150px">
+          <option value="">Todas</option>
+          <option>Laboratorial</option><option>Imagem</option><option>Cardiológico</option>
+          <option>Neurológico</option><option>Oftalmológico</option><option>Audiométrico</option>
+          <option>Espirométrico</option><option>Ocupacional</option><option>Outro</option>
+        </select>
+        <input class="search-box" id="busca" placeholder="🔍 Buscar..." oninput="render()" style="width:180px">
+        <span class="tbl-count" id="count"></span>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Nome do Exame</th><th>Categoria</th><th>Instruções ao Paciente</th><th style="text-align:center">Ações</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- BANCO DE MEDICAMENTOS -->
+  <div class="page-header" style="margin-top:20px">
+    <div><div class="page-title">💊 Banco de Medicamentos</div><div class="page-sub">Medicamentos salvos para autocompletar no Receituário</div></div>
+  </div>
+
+  <div style="background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--fg2);margin-bottom:16px;line-height:1.7">
+    💡 Os medicamentos são salvos automaticamente quando você marca "Salvar no banco" ao gerar uma receita. Você também pode cadastrar manualmente aqui.
+  </div>
+
+  <div class="form-card">
+    <div class="form-card-title" id="formTituloMed">Novo Medicamento</div>
+    <div class="form-row">
+      <div class="form-group fg3"><label class="form-label">Nome + Dosagem *</label><input id="medNome" placeholder="Ex: Dipirona Sódica 500mg, Amoxicilina 500mg..."></div>
+      <div class="form-group fg1"><label class="form-label">Quantidade / Embalagem</label><input id="medQtd" placeholder="Ex: 1 caixa, 30 comp..."></div>
+    </div>
+    <div class="form-group" style="margin-top:10px">
+      <label class="form-label">Posologia Padrão</label>
+      <textarea id="medPos" style="min-height:60px" placeholder="Ex: Tomar 1 comprimido de 8 em 8 horas por 5 dias"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn btn-primary" id="btnSalvarMed" onclick="salvarMed()">+ Salvar Medicamento</button>
+      <button class="btn-cancel" id="btnCancelarMed" onclick="cancelarMed()">Cancelar</button>
+    </div>
+    <div class="aviso av-ok"   id="avisoOkMed"></div>
+    <div class="aviso av-erro" id="avisoErrMed"></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="tbl-top">
+      <span class="tbl-title">Medicamentos Cadastrados</span>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input class="search-box" id="buscaMed" placeholder="🔍 Buscar..." oninput="renderMeds()" style="width:200px">
+        <span class="tbl-count" id="countMed"></span>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Nome / Dosagem</th><th>Posologia</th><th>Quantidade</th><th style="text-align:center">Ações</th></tr></thead>
+      <tbody id="tbodyMed"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+aplicarTemaAtual()
+const { listarExames, inserirExame, atualizarExame, deletarExame, listarMedicamentos, inserirMedicamento, atualizarMedicamento, deletarMedicamento } = require('../js/db.js')
+let editandoId = null, editandoMedId = null
+
+// ── EXAMES ──────────────────────────────────────────────────
+function salvar() {
+  const nome = document.getElementById('nome').value.trim()
+  if (!nome) { aviso('erro','Informe o nome do exame.'); return }
+  const d = { nome, categoria: document.getElementById('categoria').value, instrucoes: document.getElementById('instrucoes').value.trim() }
+  try {
+    if (editandoId) {
+      atualizarExame({...d, id: editandoId})
+      aviso('ok','Exame atualizado!')
+      cancelar()
+    } else {
+      const ok = inserirExame(d)
+      if (!ok) { aviso('erro','Já existe um exame com esse nome e categoria.'); return }
+      aviso('ok','✓ Exame "' + nome + '" salvo!')
+      limpar()
+    }
+    render()
+  } catch(e) {
+    aviso('erro', 'Erro ao salvar: ' + e.message)
+  }
+}
+function editar(id) {
+  const e = listarExames().find(x=>x.id===id); if(!e) return
+  document.getElementById('nome').value        = e.nome
+  document.getElementById('categoria').value   = e.categoria||''
+  document.getElementById('instrucoes').value  = e.instrucoes||''
+  document.getElementById('formTitulo').textContent    = '✏️ Editar Exame'
+  document.getElementById('btnSalvar').textContent     = '💾 Salvar'
+  document.getElementById('btnCancelar').style.display = 'inline-flex'
+  editandoId = id; window.scrollTo({top:0,behavior:'smooth'})
+}
+function cancelar() { limpar(); editandoId=null; document.getElementById('formTitulo').textContent='Novo Exame'; document.getElementById('btnSalvar').textContent='+ Salvar Exame'; document.getElementById('btnCancelar').style.display='none' }
+function limpar()   { ['nome','instrucoes'].forEach(i=>document.getElementById(i).value=''); document.getElementById('categoria').value='' }
+function excluir(id){ confirmar('Excluir este exame?', ok=>{ if(ok){ deletarExame(id); render() } }) }
+function render() {
+  const busca = (document.getElementById('busca')?.value||'').toLowerCase()
+  const cat   = document.getElementById('filtroCategoria')?.value||''
+  let lista   = listarExames(busca)
+  if (cat) lista = lista.filter(e=>e.categoria===cat)
+  document.getElementById('count').textContent = listarExames().length+' exame(s)'
+  document.getElementById('tbody').innerHTML = lista.length ? lista.map(e=>`
+    <tr>
+      <td><b style="color:var(--fg)">${e.nome}</b></td>
+      <td><span class="badge b-blue">${e.categoria||'—'}</span></td>
+      <td style="font-size:12px;color:var(--muted);max-width:300px">${e.instrucoes||'—'}</td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="btn-edit" onclick="editar(${e.id})">✏️</button>
+        <button class="btn-danger" onclick="excluir(${e.id})">🗑️</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="4" class="empty">Nenhum exame cadastrado.</td></tr>'
+}
+
+// ── MEDICAMENTOS ────────────────────────────────────────────
+function editarMed(id) {
+  const lista = listarMedicamentos()
+  const m = lista.find(x => x.id === id)
+  if (!m) return
+  document.getElementById('medNome').value = m.nome
+  document.getElementById('medPos').value  = m.posologia || ''
+  document.getElementById('medQtd').value  = m.quantidade || ''
+  editandoMedId = id
+  document.getElementById('formTituloMed').textContent    = '✏️ Editar Medicamento'
+  document.getElementById('btnSalvarMed').textContent     = '💾 Salvar Alteração'
+  document.getElementById('btnCancelarMed').style.display = 'inline-flex'
+  window.scrollTo({ top: document.getElementById('medNome').offsetTop - 100, behavior: 'smooth' })
+}
+
+function salvarMed() {
+  const nome = document.getElementById('medNome').value.trim()
+  if (!nome) { aviso('erro','Informe o nome do medicamento.'); return }
+  try {
+    if (editandoMedId) {
+      atualizarMedicamento({ id: editandoMedId, nome, posologia: document.getElementById('medPos').value.trim(), quantidade: document.getElementById('medQtd').value.trim() })
+      aviso('ok','Medicamento atualizado!')
+      cancelarMed()
+    } else {
+      const ok = inserirMedicamento({ nome, posologia: document.getElementById('medPos').value.trim(), quantidade: document.getElementById('medQtd').value.trim() })
+      if (!ok) { aviso('erro','Já existe um medicamento com esse nome.'); return }
+      aviso('ok','✓ Medicamento "' + nome + '" salvo!')
+      limparMed()
+    }
+    renderMeds()
+  } catch(e) {
+    aviso('erro', 'Erro ao salvar: ' + e.message)
+  }
+}
+function cancelarMed() { limparMed(); editandoMedId=null }
+function limparMed()   { ['medNome','medPos','medQtd'].forEach(i=>document.getElementById(i).value='') }
+function excluirMed(id){ confirmar('Excluir este medicamento?', ok=>{ if(ok){ deletarMedicamento(id); renderMeds() } }) }
+function renderMeds() {
+  const busca = (document.getElementById('buscaMed')?.value||'').toLowerCase()
+  const lista = listarMedicamentos(busca)
+  document.getElementById('countMed').textContent = listarMedicamentos().length+' medicamento(s)'
+  document.getElementById('tbodyMed').innerHTML = lista.length ? lista.map(m=>`
+    <tr>
+      <td><b style="color:var(--fg)">${m.nome}</b></td>
+      <td style="font-size:12px;color:var(--fg2);max-width:280px">${m.posologia||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${m.quantidade||'—'}</td>
+      <td style="text-align:center;white-space:nowrap"><button class="btn-edit" onclick="editarMed(${m.id})">✏️</button><button class="btn-danger" onclick="excluirMed(${m.id})">🗑️</button></td>
+    </tr>`).join('') : '<tr><td colspan="4" class="empty">Nenhum medicamento cadastrado ainda. Eles aparecem aqui ao salvar no receituário.</td></tr>'
+}
+
+render(); renderMeds()
+</script>
+</body></html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GHZ Plugin - Gerador MedCore</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0d1117;color:#e5eefb;font-family:Segoe UI,system-ui,sans-serif;min-height:100vh;padding:20px}.wrap{max-width:760px;margin:0 auto}.header{display:flex;align-items:center;gap:14px;margin-bottom:18px}.logo{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#1d4ed8,#0891b2);display:flex;align-items:center;justify-content:center;font-size:28px}.brand{font-size:25px;font-weight:900}.brand span{color:#7dd3fc}.sub{color:#8aa0bd;font-size:13px}.card{background:#151c2b;border:1px solid #29364f;border-radius:18px;padding:20px;margin-bottom:14px;box-shadow:0 18px 50px rgba(0,0,0,.22)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:720px){.grid{grid-template-columns:1fr}}label{font-size:11px;font-weight:800;color:#8aa0bd;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:7px}input,textarea{width:100%;background:#0b1020;border:1px solid #33415f;border-radius:12px;color:#f8fbff;padding:13px 14px;font-size:14px;outline:none}textarea{min-height:150px;resize:vertical}input:focus,textarea:focus{border-color:#38bdf8}.btn{border:0;border-radius:12px;padding:13px 16px;font-weight:900;cursor:pointer;background:#2563eb;color:#fff}.btn:hover{background:#1d4ed8}.btn.secondary{background:#243149;color:#cfe3ff;border:1px solid #3a4b6c}.btn.danger{background:#b91c1c}.row{display:flex;gap:10px;flex-wrap:wrap}.result{display:none}.key{font-family:Consolas,monospace;font-size:22px;color:#7dd3fc;font-weight:900;letter-spacing:.08em;word-break:break-word;background:#0b1020;border:1px dashed #38bdf8;border-radius:12px;padding:14px}.status{white-space:pre-line;border-radius:12px;padding:12px;margin-top:12px;display:none;font-weight:700}.ok{background:#052e1a;color:#86efac;border:1px solid #15803d}.err{background:#3b1014;color:#fca5a5;border:1px solid #b91c1c}.muted{color:#8aa0bd;font-size:12px;line-height:1.55}.devices{font-size:13px;overflow:auto}.devices table{width:100%;border-collapse:collapse}.devices th,.devices td{padding:9px;border-bottom:1px solid #29364f;text-align:left}.devices th{color:#8aa0bd;font-size:11px;text-transform:uppercase}.pill{display:inline-flex;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800}.active{background:#064e3b;color:#a7f3d0}.blocked{background:#7f1d1d;color:#fecaca}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header"><div class="logo">??</div><div><div class="brand">Med<span>Core</span></div><div class="sub">Gerador de licencas MySQL - GHZ Plugin</div></div></div>
+
+  <div class="card">
+    <div class="grid">
+      <div><label>API MedCore</label><input id="apiUrl" value="https://ghzplugin.com.br/medcore-api/index.php"></div>
+      <div><label>Token administrativo</label><input id="adminToken" type="password" placeholder="Cole seu token admin"></div>
+      <div><label>Nome cliente / clinica</label><input id="customerName" placeholder="Clinica Saude Total"></div>
+      <div><label>E-mail opcional</label><input id="customerEmail" placeholder="cliente@email.com"></div>
+      <div><label>Pedido Mercado Livre opcional</label><input id="order" placeholder="2000000000000000"></div>
+      <div><label>Limite computadores</label><input id="maxDevices" type="number" min="1" max="50" value="5"></div>
+      <div><label>Vencimento opcional</label><input id="expiresAt" placeholder="2026-12-31 ou deixe vazio"></div>
+      <div><label>Manifesto GitHub opcional</label><input id="manifestUrl" placeholder="A API ja tem um padrao configurado"></div>
+    </div>
+    <div style="margin-top:12px"><label>Observacoes</label><input id="notes" placeholder="Observacao interna opcional"></div>
+    <div class="row" style="margin-top:16px"><button class="btn" onclick="criarLicenca()">Gerar licenca</button><button class="btn secondary" onclick="consultarDispositivos()">Consultar computadores</button></div>
+    <div class="muted" style="margin-top:12px">O token administrativo nao fica salvo no HTML. A senha do MySQL nunca aparece aqui.</div>
+    <div id="status" class="status"></div>
+  </div>
+
+  <div class="card result" id="result">
+    <label>Chave gerada</label>
+    <div class="key" id="licenseKey"></div>
+    <div class="row" style="margin-top:12px"><button class="btn" onclick="copiarChave()">Copiar chave</button><button class="btn secondary" onclick="copiarTexto()">Copiar texto Mercado Livre</button></div>
+    <label style="margin-top:16px">Texto pronto</label>
+    <textarea id="messageText" readonly></textarea>
+    <div class="muted"><span id="chars">0</span> caracteres.</div>
+  </div>
+
+  <div class="card" id="devicesCard" style="display:none">
+    <label>Computadores ativados</label>
+    <div id="devicesSummary" class="muted"></div>
+    <div class="devices" id="devices"></div>
+  </div>
+</div>
+<script>
+let ultimaChave = ''
+function el(id){return document.getElementById(id)}
+function status(msg, ok=false){const s=el('status');s.textContent=msg;s.className='status '+(ok?'ok':'err');s.style.display='block'}
+async function api(action, payload){
+  const url = el('apiUrl').value.trim()
+  const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,admin_token:el('adminToken').value.trim(),...payload})})
+  const data = await res.json().catch(()=>null)
+  if(!res.ok || !data || data.ok===false) throw new Error((data&&data.message)||`Erro HTTP ${res.status}`)
+  return data
+}
+async function criarLicenca(){
+  try{
+    status('Gerando licenca...', true)
+    const data = await api('license_create',{
+      customer_name: el('customerName').value.trim(),
+      customer_email: el('customerEmail').value.trim(),
+      mercado_livre_order: el('order').value.trim(),
+      max_devices: Number(el('maxDevices').value||5),
+      expires_at: el('expiresAt').value.trim(),
+      notes: el('notes').value.trim(),
+      manifest_url: el('manifestUrl').value.trim()
+    })
+    ultimaChave = data.license_key
+    el('licenseKey').textContent = data.license_key
+    el('messageText').value = data.message_text || ''
+    el('chars').textContent = String(el('messageText').value.length)
+    el('result').style.display='block'
+    status('Licenca criada no MySQL com sucesso.', true)
+  }catch(e){status(e.message||String(e), false)}
+}
+async function consultarDispositivos(){
+  try{
+    const key = ultimaChave || el('licenseKey').textContent.trim() || prompt('Digite a chave da licenca')
+    if(!key) return
+    const data = await api('license_devices',{license_key:key})
+    el('devicesCard').style.display='block'
+    el('devicesSummary').textContent = `Uso: ${data.used}/${data.max_devices}`
+    el('devices').innerHTML = `<table><thead><tr><th>Status</th><th>Computador</th><th>Sistema</th><th>Versao</th><th>Ativado</th><th>Ultimo acesso</th><th>Acoes</th></tr></thead><tbody>${(data.devices||[]).map(d=>`<tr><td><span class="pill ${d.status==='active'?'active':'blocked'}">${d.status}</span></td><td>${d.device_name||''}</td><td>${d.device_os||''}</td><td>${d.app_version||''}</td><td>${d.activated_at||''}</td><td>${d.last_seen_at||''}</td><td><button class="btn danger" onclick="bloquear('${key}','${d.device_hash}', '${d.status==='active'?'blocked':'active'}')">${d.status==='active'?'Bloquear':'Liberar'}</button></td></tr>`).join('')}</tbody></table>`
+    status('Computadores carregados.', true)
+  }catch(e){status(e.message||String(e), false)}
+}
+async function bloquear(key, hash, nextStatus){
+  try{await api('license_device_block',{license_key:key,device_hash:hash,status:nextStatus}); await consultarDispositivos()}catch(e){status(e.message||String(e), false)}
+}
+function copiarChave(){navigator.clipboard.writeText(el('licenseKey').textContent.trim())}
+function copiarTexto(){navigator.clipboard.writeText(el('messageText').value)}
+</script>
+</body>
+</html>

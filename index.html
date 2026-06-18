@@ -1,0 +1,668 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR" data-tema="light">
+<head>
+  <meta charset="UTF-8">
+  <title>MedCore</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/licenca.js"></script>
+  <script>
+    if (!licencaAtivaMC()) {
+      window.location.replace('pages/licenca.html')
+    }
+  </script>
+</head>
+<body>
+<div id="loginOverlay" class="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-title">Acesso ao MedCore</div>
+    <p class="auth-sub">
+      Este acesso e simples: primeiro o app conecta ao servidor online, depois voce informa o codigo da clinica.
+      Assim o sistema sabe em qual espaco os dados devem sincronizar.
+    </p>
+
+    <div class="auth-help">
+      <div><b>Se voce ja usa:</b> digite o mesmo codigo da clinica.</div>
+      <div><b>Se voce e novo:</b> escolha criar uma nova clinica para gerar um codigo automaticamente.</div>
+      <div><b>Sincronizacao:</b> os dados ficam salvos no computador e sobem para o servidor quando houver internet.</div>
+      <div><b>Seguranca:</b> nao compartilhe o codigo da clinica fora da equipe autorizada.</div>
+      <div><b>Importante:</b> cada clinica tem um codigo proprio para separar os dados.</div>
+    </div>
+
+    <div class="auth-box" id="supabaseConfigBox">
+      <div class="auth-box-title">1) Conexao online (feita uma vez)</div>
+      <div class="auth-grid">
+        <div class="form-group">
+          <label class="form-label">SUPABASE URL</label>
+          <input id="sbUrl" placeholder="https://xxxx.supabase.co">
+        </div>
+        <div class="form-group">
+          <label class="form-label">SUPABASE ANON KEY</label>
+          <input id="sbAnonKey" placeholder="eyJ..." type="password">
+        </div>
+      </div>
+      <div class="auth-actions-row">
+        <button class="btn btn-primary" id="btnSaveSupabase">Salvar conexao</button>
+      </div>
+      <div class="auth-note">Dica: no instalador oficial essa conexao ja vem pronta.</div>
+    </div>
+
+    <div class="auth-box">
+      <div class="auth-box-title">2) Conexao com o servidor</div>
+      <div class="auth-actions-row">
+        <button class="btn btn-primary" id="btnGoogleLogin">Conectar ao servidor</button>
+        <button class="btn btn-ghost" id="btnGoogleLogout" style="display:none">Sair do acesso online</button>
+      </div>
+      <div id="googleUser" class="auth-note"></div>
+    </div>
+
+    <div class="auth-box" id="firstAccessBox" style="display:none">
+      <div class="auth-box-title">3) Primeiro acesso / Login</div>
+      <div class="auth-note" style="margin-bottom:10px">
+        Escolha como deseja entrar:
+      </div>
+      <div class="auth-actions-row">
+        <button class="btn btn-ghost" id="btnFirstHasClinic">Ja tenho clinica cadastrada</button>
+        <button class="btn btn-primary" id="btnFirstNoClinic">Nao tenho clinica cadastrada</button>
+      </div>
+      <div class="auth-note">
+        Se voce ja trabalha em uma clinica, use o mesmo codigo da clinica que o primeiro usuario criou.
+        Se for uma clinica nova, o sistema cria um codigo da clinica automaticamente.
+      </div>
+    </div>
+
+    <div class="auth-box" id="workspaceBox">
+      <div class="auth-box-title">4) Codigo da clinica</div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">CODIGO DA CLINICA</label>
+        <input id="workspaceInput" placeholder="Ex: CLINICA-GU-01" maxlength="50">
+      </div>
+      <div class="auth-actions-row">
+        <button class="btn btn-primary" id="btnWorkspaceEnter">Logar</button>
+      </div>
+      <div class="auth-note">Use sempre o mesmo codigo para acessar os dados da clinica.</div>
+    </div>
+
+    <div id="authStatus" class="auth-status"></div>
+  </div>
+</div>
+
+<div class="container" id="appContainer" style="display:none">
+  <div class="menu">
+    <div class="menu-logo">
+      <div class="logo-icon">🏥</div>
+      <span class="logo-text">Med<span class="logo-accent">Core</span></span>
+    </div>
+
+    <nav class="menu-nav">
+      <button class="nav-btn active" onclick="ir('pages/dashboard.html',this)">
+        <span class="nav-icon">🏠</span> Dashboard
+      </button>
+      <button class="nav-btn" onclick="ir('pages/agenda.html',this)">
+        <span class="nav-icon">📅</span> Agenda
+      </button>
+
+      <div class="nav-sep"></div>
+      <div class="nav-group-label">Clinico</div>
+
+      <button class="nav-btn" onclick="ir('pages/pacientes.html',this)">
+        <span class="nav-icon">👤</span> Pacientes
+      </button>
+      <button class="nav-btn" onclick="ir('pages/prontuario.html',this)">
+        <span class="nav-icon">📋</span> Prontuarios
+      </button>
+      <button class="nav-btn" onclick="ir('pages/aso.html',this)">
+        <span class="nav-icon">📄</span> Emitir ASO
+      </button>
+      <button class="nav-btn" onclick="ir('pages/receituario.html',this)">
+        <span class="nav-icon">💊</span> Receituario
+      </button>
+      <button class="nav-btn" onclick="ir('pages/banco_exames.html',this)">
+        <span class="nav-icon">🔬</span> Banco de Exames
+      </button>
+      <button class="nav-btn" onclick="ir('pages/laudo.html',this)">
+        <span class="nav-icon">📝</span> Laudo de Exames
+      </button>
+      <button class="nav-btn" onclick="ir('pages/historico_geral.html',this)">
+        <span class="nav-icon">📂</span> Historico Geral
+      </button>
+
+      <div class="nav-sep"></div>
+      <div class="nav-group-label">Administrativo</div>
+
+      <button class="nav-btn" onclick="ir('pages/medicos.html',this)">
+        <span class="nav-icon">🩺</span> Medicos
+      </button>
+      <button class="nav-btn" onclick="ir('pages/financeiro.html',this)">
+        <span class="nav-icon">💰</span> Financeiro
+      </button>
+      <button class="nav-btn" onclick="ir('pages/locais.html',this)">
+        <span class="nav-icon">🏥</span> Locais de Atendimento
+      </button>
+      <button class="nav-btn" onclick="ir('pages/estoque.html',this)">
+        <span class="nav-icon">📦</span> Estoque
+        <span class="nav-badge" id="badgeEstoque">0</span>
+      </button>
+      <button class="nav-btn" onclick="ir('pages/configuracoes.html',this)">
+        <span class="nav-icon">⚙️</span> Configuracoes
+      </button>
+
+      <div class="nav-sep"></div>
+
+      <button class="nav-btn" onclick="abrirTV()" style="color:#22d3ee">
+        <span class="nav-icon">📺</span> Painel TV
+      </button>
+      <button class="nav-btn" onclick="ir('pages/como_usar.html',this)">
+        <span class="nav-icon">📖</span> Como Usar
+      </button>
+      <button class="nav-btn" onclick="ir('pages/sobre.html',this)">
+        <span class="nav-icon">ℹ️</span> Sobre
+      </button>
+      <button class="nav-btn" onclick="ir('pages/backup.html',this)">
+        <span class="nav-icon">💾</span> Backup / Migracao
+      </button>
+    </nav>
+
+    <div class="menu-footer">
+      <button class="btn-tema" id="btnTema" onclick="alternarTema()">
+        <span id="temaIcon">🌙</span>
+        <span id="temaLabel">Modo Escuro</span>
+      </button>
+      <button class="btn-tema" id="btnTrocarUsuario" onclick="sairParaTrocarUsuario()">
+        <span>🚪</span>
+        <span>Sair da conta</span>
+      </button>
+      <div class="menu-footer-brand">Codigo da clinica ativo</div>
+      <div class="menu-footer-name" id="workspaceLabel">-</div>
+      <div class="sync-status-badge sync-status-idle" id="syncStatusBadge">Sync parado</div>
+    </div>
+  </div>
+
+  <div class="conteudo">
+    <iframe id="frame" src="pages/dashboard.html"></iframe>
+  </div>
+</div>
+
+<script>
+  const { ipcRenderer } = require('electron')
+  const { listarEstoque, setConfig, getConfig } = require('./js/db.js')
+
+  const authStatusEl = document.getElementById('authStatus')
+  const googleUserEl = document.getElementById('googleUser')
+  const supabaseConfigBox = document.getElementById('supabaseConfigBox')
+  const firstAccessBox = document.getElementById('firstAccessBox')
+  const workspaceBox = document.getElementById('workspaceBox')
+  const workspaceInput = document.getElementById('workspaceInput')
+  const appContainer = document.getElementById('appContainer')
+  const loginOverlay = document.getElementById('loginOverlay')
+  const workspaceLabel = document.getElementById('workspaceLabel')
+  const syncStatusBadge = document.getElementById('syncStatusBadge')
+
+  let authUser = null
+  let appStarted = false
+  let autoEntryTried = false
+  let badgeTimer = null
+  let supabaseConfigLocked = false
+  const IS_WINDOWS = process.platform === 'win32'
+  const WINDOW_TITLEBAR_HEIGHT = 24
+
+  if (IS_WINDOWS) {
+    document.documentElement.classList.add('windows-titlebar')
+    document.documentElement.style.setProperty('--window-titlebar-height', `${WINDOW_TITLEBAR_HEIGHT}px`)
+  }
+
+  const tema = localStorage.getItem('@MEDCORE:tema') || 'light'
+  document.documentElement.setAttribute('data-tema', tema)
+  document.getElementById('temaIcon').textContent = tema === 'light' ? '🌙' : '☀️'
+  document.getElementById('temaLabel').textContent = tema === 'light' ? 'Modo Escuro' : 'Modo Claro'
+
+  async function aplicarTemaBarraWindows(temaAtual) {
+    if (!IS_WINDOWS) return
+    try {
+      await ipcRenderer.invoke('window-theme:set', {
+        theme: temaAtual,
+        height: WINDOW_TITLEBAR_HEIGHT
+      })
+    } catch (_) {}
+  }
+
+  aplicarTemaBarraWindows(tema)
+
+  function setAuthStatus(texto, tipo = 'info') {
+    authStatusEl.textContent = texto || ''
+    authStatusEl.classList.remove('auth-status-ok', 'auth-status-error')
+    if (tipo === 'ok') authStatusEl.classList.add('auth-status-ok')
+    if (tipo === 'error') authStatusEl.classList.add('auth-status-error')
+  }
+
+      function setSyncStatus(state, message) {
+        if (!syncStatusBadge) return
+        const value = String(state || 'idle').toLowerCase()
+        syncStatusBadge.classList.remove('sync-status-idle', 'sync-status-syncing', 'sync-status-online', 'sync-status-offline')
+
+        if (value === 'online' && message) {
+          syncStatusBadge.classList.add('sync-status-online')
+          syncStatusBadge.textContent = message
+          syncStatusBadge.style.display = 'inline-flex'
+          setTimeout(() => {
+            if (syncStatusBadge.classList.contains('sync-status-online')) setSyncStatus('idle', '')
+          }, 6000)
+          return
+        }
+
+        if (value === 'syncing') {
+          syncStatusBadge.classList.add('sync-status-syncing')
+          syncStatusBadge.textContent = message || 'Sincronizando...'
+          syncStatusBadge.style.display = 'inline-flex'
+          return
+        }
+
+        if (value === 'offline') {
+          syncStatusBadge.classList.add('sync-status-offline')
+          syncStatusBadge.textContent = message || 'Sem internet. A sincronizacao volta sozinha quando a conexao retornar.'
+          syncStatusBadge.style.display = 'inline-flex'
+          return
+        }
+
+        syncStatusBadge.style.display = 'none'
+        syncStatusBadge.textContent = ''
+      }
+
+  function formatWorkspace(v) {
+    return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '')
+  }
+
+  function setGoogleUser(user) {
+    authUser = user || null
+    if (authUser) {
+      googleUserEl.textContent = `Acesso online conectado${authUser.email ? `: ${authUser.email}` : ''}`
+      document.getElementById('btnGoogleLogout').style.display = 'inline-flex'
+      setAuthStatus('Servidor conectado.', 'ok')
+    } else {
+      googleUserEl.textContent = 'Servidor online desconectado.'
+      document.getElementById('btnGoogleLogout').style.display = 'none'
+      firstAccessBox.style.display = 'none'
+      workspaceBox.style.display = 'block'
+    }
+  }
+
+  function setSupabaseBoxVisible(visible) {
+    supabaseConfigBox.style.display = visible ? 'block' : 'none'
+  }
+
+  function setFirstAccessVisible(visible) {
+    firstAccessBox.style.display = visible ? 'block' : 'none'
+  }
+
+  function setWorkspaceBoxVisible(visible) {
+    workspaceBox.style.display = visible ? 'block' : 'none'
+  }
+
+  function getSavedWorkspace(userId = '') {
+    const uid = String(userId || '').trim()
+    if (uid) {
+      const byUser = formatWorkspace(getConfig(`auth_workspace_${uid}`, ''))
+      if (byUser) return byUser
+    }
+    return formatWorkspace(getConfig('sync_workspace_key', ''))
+  }
+
+  async function carregarSupabaseConfig() {
+    const res = await ipcRenderer.invoke('supabase-config:get')
+    if (res && res.ok) {
+      document.getElementById('sbUrl').value = res.url || ''
+      document.getElementById('sbAnonKey').value = res.anonKey || ''
+      supabaseConfigLocked = !!res.locked
+      setSupabaseBoxVisible(!supabaseConfigLocked)
+    }
+  }
+
+  async function resolverWorkspacePosLogin() {
+    if (!authUser) return
+
+    const linked = await ipcRenderer.invoke('workspace:linked')
+    if (!linked || !linked.ok) {
+      setAuthStatus((linked && linked.message) || 'Nao foi possivel validar o codigo da clinica da conta.', 'error')
+      setWorkspaceBoxVisible(true)
+      return
+    }
+
+    if (linked.hasLinkedWorkspace && linked.workspaceKey) {
+      const key = formatWorkspace(linked.workspaceKey)
+      workspaceInput.value = key
+
+      setConfig('auth_provider', 'google')
+      setConfig('auth_user_id', authUser.id || '')
+      setConfig('auth_user_email', authUser.email || '')
+      setConfig('sync_workspace_key', key)
+      if (authUser.id) setConfig(`auth_workspace_${authUser.id}`, key)
+
+      setFirstAccessVisible(false)
+      setWorkspaceBoxVisible(true)
+      if (getConfig('auth_provider', '') === 'license') {
+        setAuthStatus('Licenca validada. Entrando no MedCore...', 'ok')
+        await entrarNoWorkspace(key, { silencioso: true })
+        return
+      }
+      setAuthStatus(`Codigo da clinica ${key} encontrado para sua conta. Clique em Logar.`, 'ok')
+      return
+    }
+
+    // Primeiro acesso sem workspace vinculado:
+    // usuario escolhe entre entrar em clinica existente ou criar clinica nova.
+    workspaceInput.value = ''
+    setFirstAccessVisible(true)
+    setWorkspaceBoxVisible(false)
+    setAuthStatus('Primeiro acesso detectado. Escolha uma opcao abaixo.', 'ok')
+  }
+
+  async function atualizarStatusAuthInicial() {
+    const status = await ipcRenderer.invoke('supabase-auth:status')
+    if (!status || !status.ok) {
+      setAuthStatus((status && status.message) || 'Erro ao verificar login.', 'error')
+      return
+    }
+
+    if (!status.configured) {
+      setSupabaseBoxVisible(true)
+      setAuthStatus('Configure a conexao online para continuar.', 'error')
+      setGoogleUser(null)
+      return
+    }
+
+    setSupabaseBoxVisible(!supabaseConfigLocked)
+    if (status.signedIn) {
+      setGoogleUser(status.user)
+      await resolverWorkspacePosLogin()
+    } else {
+      setGoogleUser(null)
+      setFirstAccessVisible(false)
+      setWorkspaceBoxVisible(true)
+      setAuthStatus('Conexao online pronta. Agora clique em Conectar ao servidor.')
+    }
+  }
+
+  function iniciarApp(workspaceKey) {
+    workspaceLabel.textContent = workspaceKey
+    setSyncStatus('syncing', 'Sincronizando...')
+    appContainer.style.display = 'flex'
+    loginOverlay.style.display = 'none'
+    appStarted = true
+
+    ir('pages/dashboard.html', document.querySelector('.nav-btn.active'))
+    atualizarBadges()
+    if (badgeTimer) clearInterval(badgeTimer)
+    badgeTimer = setInterval(atualizarBadges, 5000)
+  }
+
+  async function entrarNoWorkspace(workspaceKey, opcoes = {}) {
+    if (!authUser) {
+      return { ok: false, message: 'Conecte ao servidor antes de logar no codigo da clinica.' }
+    }
+
+    const key = formatWorkspace(workspaceKey)
+    if (!key) {
+      return { ok: false, message: 'Digite o codigo da clinica.' }
+    }
+
+    if (!opcoes.silencioso) {
+      setAuthStatus('Conectando codigo da clinica e preparando dados...')
+    }
+
+    const res = await ipcRenderer.invoke('workspace:enter', { workspaceKey: key })
+    if (!res || !res.ok) {
+      if (!opcoes.silencioso) {
+        setAuthStatus((res && res.message) || 'Nao foi possivel logar no codigo da clinica.', 'error')
+      }
+      return { ok: false, message: (res && res.message) || 'Falha ao logar no codigo da clinica.' }
+    }
+
+    const finalKey = formatWorkspace((res && res.workspaceKey) || key)
+
+    setConfig('sync_workspace_key', finalKey)
+    setConfig('workspace_key', finalKey)
+    setConfig('auth_provider', 'google')
+    setConfig('auth_user_id', authUser.id || '')
+    setConfig('auth_user_email', authUser.email || '')
+    setConfig('sync_enabled', '1')
+    if (authUser.id) {
+      setConfig(`auth_workspace_${authUser.id}`, finalKey)
+    }
+
+    if (!opcoes.silencioso) {
+      if (res.isNewWorkspace) {
+        setAuthStatus(`Codigo da clinica ${finalKey} criado e liberado para seu usuario.`, 'ok')
+      } else {
+        setAuthStatus(`Codigo da clinica ${finalKey} carregado com sucesso.`, 'ok')
+      }
+    }
+
+    workspaceInput.value = finalKey
+    setFirstAccessVisible(false)
+    setWorkspaceBoxVisible(true)
+
+    if (!appStarted) {
+      iniciarApp(finalKey)
+    } else {
+      workspaceLabel.textContent = finalKey
+      const dashboardBtn = document.querySelector('.nav-btn')
+      if (dashboardBtn) ir('pages/dashboard.html', dashboardBtn)
+    }
+
+    return { ok: true, workspaceKey: finalKey, isNewWorkspace: !!res.isNewWorkspace }
+  }
+
+  window.medcoreSwitchWorkspace = async function (workspaceKey) {
+    const resultado = await entrarNoWorkspace(workspaceKey, { silencioso: true })
+    if (!resultado.ok) return resultado
+    return {
+      ok: true,
+      workspaceKey: resultado.workspaceKey,
+      message: `Codigo da clinica alterado para ${resultado.workspaceKey} com sucesso.`
+    }
+  }
+
+  document.getElementById('btnSaveSupabase').addEventListener('click', async () => {
+    const url = document.getElementById('sbUrl').value.trim()
+    const anonKey = document.getElementById('sbAnonKey').value.trim()
+    const res = await ipcRenderer.invoke('supabase-config:set', { url, anonKey })
+
+    if (!res || !res.ok) {
+      setAuthStatus((res && res.message) || 'Nao foi possivel salvar conexao.', 'error')
+      return
+    }
+
+    if (res && res.url) {
+      document.getElementById('sbUrl').value = res.url
+    }
+
+    setAuthStatus((res && res.message) || 'Conexao online salva com sucesso.', 'ok')
+    await atualizarStatusAuthInicial()
+  })
+
+  document.getElementById('btnGoogleLogin').addEventListener('click', async () => {
+    setAuthStatus('Conectando ao servidor...')
+    const res = await ipcRenderer.invoke('supabase-auth:google-start')
+    if (!res || !res.ok) {
+      setAuthStatus((res && res.message) || 'Falha ao conectar ao servidor.', 'error')
+    }
+  })
+
+  document.getElementById('btnGoogleLogout').addEventListener('click', async () => {
+    const res = await ipcRenderer.invoke('supabase-auth:signout')
+    if (!res || !res.ok) {
+      setAuthStatus((res && res.message) || 'Falha ao sair do acesso online.', 'error')
+      return
+    }
+    setGoogleUser(null)
+    setFirstAccessVisible(false)
+    setWorkspaceBoxVisible(true)
+    setAuthStatus('Acesso online desconectado.')
+  })
+
+  document.getElementById('btnFirstHasClinic').addEventListener('click', () => {
+    setWorkspaceBoxVisible(true)
+    setAuthStatus('Digite o codigo da clinica e clique em Logar.', 'ok')
+    workspaceInput.focus()
+  })
+
+  document.getElementById('btnFirstNoClinic').addEventListener('click', async () => {
+    if (!authUser) {
+      setAuthStatus('Conecte ao servidor primeiro.', 'error')
+      return
+    }
+
+    setAuthStatus('Criando codigo da clinica para novo acesso...')
+    const res = await ipcRenderer.invoke('workspace:create-new')
+    if (!res || !res.ok) {
+      setAuthStatus((res && res.message) || 'Nao foi possivel criar o codigo da clinica.', 'error')
+      return
+    }
+
+    const key = formatWorkspace(res.workspaceKey)
+    workspaceInput.value = key
+    setConfig('sync_workspace_key', key)
+    setConfig('workspace_key', key)
+    setConfig('auth_provider', 'google')
+    setConfig('auth_user_id', authUser.id || '')
+    setConfig('auth_user_email', authUser.email || '')
+    setConfig('sync_enabled', '1')
+    if (authUser.id) setConfig(`auth_workspace_${authUser.id}`, key)
+
+    setFirstAccessVisible(false)
+    setWorkspaceBoxVisible(true)
+    setAuthStatus(`Clinica criada com sucesso. Codigo da clinica ${key}. Entrando no app...`, 'ok')
+
+    if (!appStarted) {
+      iniciarApp(key)
+    } else {
+      workspaceLabel.textContent = key
+      const dashboardBtn = document.querySelector('.nav-btn')
+      if (dashboardBtn) ir('pages/dashboard.html', dashboardBtn)
+    }
+  })
+
+  document.getElementById('btnWorkspaceEnter').addEventListener('click', async () => {
+    const workspaceKey = formatWorkspace(workspaceInput.value)
+    workspaceInput.value = workspaceKey
+
+    const resultado = await entrarNoWorkspace(workspaceKey, { silencioso: false })
+    if (!resultado.ok) {
+      setAuthStatus(resultado.message || 'Nao foi possivel logar no codigo da clinica.', 'error')
+    }
+  })
+
+  async function sairParaTrocarUsuario() {
+    const res = await ipcRenderer.invoke('supabase-auth:signout')
+    if (!res || !res.ok) {
+      setAuthStatus((res && res.message) || 'Falha ao sair do acesso online.', 'error')
+      return
+    }
+
+    appStarted = false
+    authUser = null
+    limparSessaoLicencaMC()
+    workspaceLabel.textContent = '-'
+    appContainer.style.display = 'none'
+    loginOverlay.style.display = 'flex'
+    setGoogleUser(null)
+    setFirstAccessVisible(false)
+    setWorkspaceBoxVisible(true)
+    workspaceInput.value = ''
+    setAuthStatus('Acesso desconectado. Agora outro usuario pode entrar.', 'ok')
+    window.location.href = 'pages/licenca.html'
+  }
+
+  ipcRenderer.on('supabase-auth:event', async (_event, payload) => {
+    if (!payload || !payload.ok) {
+      setAuthStatus((payload && payload.message) || 'Erro ao conectar ao servidor.', 'error')
+      return
+    }
+
+    setGoogleUser(payload.user)
+    await resolverWorkspacePosLogin()
+  })
+
+      ipcRenderer.on('medcore-sync:event', (_event, payload) => {
+        if (!payload) return
+        const state = String(payload.state || '').toLowerCase()
+        const message = String(payload.message || '')
+        if (state === 'offline') {
+          setSyncStatus('offline', message || 'Sem internet. A sincronizacao volta sozinha quando a conexao retornar.')
+          return
+        }
+        if (state === 'online' && payload.diagnostics) {
+          const total = Number(payload.diagnostics.total || 0)
+          const pushed = Number(payload.pushedRows || 0)
+          const pulled = Number(payload.pulledRows || 0)
+          setSyncStatus('online', `Sync ok: ${pushed} enviados, ${pulled} baixados, ${total} chamadas da nuvem na sessao.`)
+          console.log('[sync-diagnostics]', payload.diagnostics)
+          return
+        }
+        setSyncStatus('idle', '')
+        if (state === 'error') {
+          console.error('[sync]', payload.message)
+        }
+      })
+
+  function ir(pagina, btn) {
+    document.getElementById('frame').src = pagina
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'))
+    if (btn) btn.classList.add('active')
+    atualizarBadges()
+  }
+
+  function alternarTema() {
+    const atual = localStorage.getItem('@MEDCORE:tema') || 'light'
+    const novo = atual === 'light' ? 'dark' : 'light'
+    localStorage.setItem('@MEDCORE:tema', novo)
+    document.documentElement.setAttribute('data-tema', novo)
+    document.getElementById('temaIcon').textContent = novo === 'light' ? '🌙' : '☀️'
+    document.getElementById('temaLabel').textContent = novo === 'light' ? 'Modo Escuro' : 'Modo Claro'
+    aplicarTemaBarraWindows(novo)
+    const frame = document.getElementById('frame')
+    frame.src = frame.src
+  }
+
+  function atualizarBadges() {
+    try {
+      const alertas = listarEstoque().filter(e => Number(e.quantidade || 0) <= Number(e.qtd_minima || 0))
+      const el = document.getElementById('badgeEstoque')
+      if (el) {
+        el.textContent = alertas.length
+        el.style.display = alertas.length > 0 ? 'flex' : 'none'
+      }
+    } catch (_) {}
+  }
+
+  function abrirTV() {
+    try {
+      ipcRenderer.invoke('abrir-painel-tv').then(r => {
+        if (!r || !r.sucesso) {
+          alert('Nao foi possivel abrir o painel.')
+        }
+      })
+    } catch (_) {}
+  }
+
+  ;(async function boot() {
+    setSyncStatus('idle', '')
+    if (getConfig('auth_provider', '') === 'license') {
+      const validacao = await ipcRenderer.invoke('license:validate-saved')
+      if (!validacao || !validacao.ok) {
+        limparSessaoLicencaMC()
+        window.location.replace('pages/licenca.html')
+        return
+      }
+      if (validacao.workspaceKey) {
+        setConfig('workspace_key', validacao.workspaceKey)
+        setConfig('sync_workspace_key', validacao.workspaceKey)
+      }
+    }
+    workspaceInput.value = getSavedWorkspace()
+    await carregarSupabaseConfig()
+    await atualizarStatusAuthInicial()
+    await aplicarTemaBarraWindows(localStorage.getItem('@MEDCORE:tema') || 'light')
+  })()
+</script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/util.js"></script>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Configuracoes</div>
+      <div class="page-sub">Dados da clinica e medico responsavel</div>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+    <div style="flex:1;min-width:320px">
+      <div style="font-size:13px;font-weight:800;color:var(--fg)">Codigo da Clinica</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">Se precisar trocar de clinica, altere o codigo abaixo e clique em Logar.</div>
+      <div class="form-group" style="margin-top:10px">
+        <label class="form-label">CODIGO DA CLINICA</label>
+        <input id="workspace_codigo" placeholder="Ex: CLINICA-GU-01" maxlength="50">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="trocarCodigoClinica()" style="padding:12px 20px;font-weight:800">Logar no codigo</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div class="form-card">
+        <div class="form-card-title">Dados da Clinica</div>
+        <div class="form-group" style="margin-bottom:10px"><label class="form-label">Nome / Razao Social *</label><input id="clinica_nome" placeholder="Ex: CLINICA SAUDE TOTAL LTDA"></div>
+        <div class="form-group" style="margin-bottom:10px"><label class="form-label">CNPJ</label><input id="clinica_cnpj" placeholder="00.000.000/0001-00"></div>
+        <div class="form-group" style="margin-bottom:10px"><label class="form-label">Endereco Completo</label><input id="clinica_endereco" placeholder="Rua, Numero, Bairro, Cidade - UF"></div>
+        <div class="form-group" style="margin-bottom:10px"><label class="form-label">Telefone</label><input id="clinica_telefone" placeholder="(11) 3333-3333"></div>
+        <div class="form-group" style="margin-bottom:10px"><label class="form-label">E-mail</label><input id="clinica_email" placeholder="contato@clinica.com.br"></div>
+        <div class="form-group"><label class="form-label">Site</label><input id="clinica_site" placeholder="www.clinica.com.br"></div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Licenca</div>
+        <div id="licencaAtual" style="font-family:monospace;font-size:14px;font-weight:700;color:var(--primary);background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:8px;padding:10px 14px">Carregando...</div>
+      </div>
+
+      <div class="form-card" style="background:var(--card2)">
+        <div class="form-card-title">Migracao de Dados entre PCs</div>
+        <div style="font-size:13px;color:var(--fg2);line-height:1.8;margin-bottom:12px">
+          Para transferir todos os dados para um novo computador, copie a pasta <b>data</b> localizada dentro da pasta onde o MedCore esta instalado.<br><br>
+          Geralmente em:<br>
+          <span style="font-family:monospace;background:var(--bg2);padding:4px 8px;border-radius:4px;font-size:12px;display:block;margin-top:4px">C:\Program Files\MedCore\resources\app\data\</span>
+        </div>
+        <div style="background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--fg2);line-height:1.8">
+          <b>Passo a passo:</b><br>
+          1. No PC antigo, copie a pasta <b>data\</b> para um pen drive<br>
+          2. No PC novo, instale o MedCore normalmente<br>
+          3. Cole a pasta <b>data\</b> substituindo a existente<br>
+          4. Abra o MedCore e todos os dados estarao disponiveis
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="form-card" style="border-color:var(--primary-bdr)">
+        <div class="form-card-title">Medico Responsavel</div>
+        <div class="form-group" style="margin-bottom:10px"><label class="form-label">Nome do Medico *</label><input id="rt_nome" placeholder="Dr. Nome Completo"></div>
+        <div class="form-group" style="margin-bottom:10px"><label class="form-label">Especialidade</label><input id="rt_especialidade" placeholder="Ex: Medicina do Trabalho"></div>
+        <div class="form-group" style="margin-bottom:14px"><label class="form-label">CRM</label><input id="rt_crm" placeholder="CRM/SP 000000"></div>
+
+        <div class="form-card-title">Logomarca da Clinica</div>
+        <div id="logoPreview" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;margin-bottom:10px;min-height:70px;display:flex;align-items:center;justify-content:center">
+          <span style="color:var(--muted);font-size:12px" id="logoPlaceholder">Nenhuma logo</span>
+          <img id="logoImg" style="max-height:70px;max-width:100%;display:none;border-radius:6px">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <label style="cursor:pointer;background:var(--primary);color:#000;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;flex:1;justify-content:center">
+            Selecionar Logo
+            <input type="file" accept="image/png,image/jpeg" style="display:none" onchange="carregarLogo(this)">
+          </label>
+          <button class="btn btn-ghost" onclick="removerLogo()" id="btnRemLogo" style="display:none;color:var(--red)">Remover</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--card2);border:1px solid var(--border);border-radius:8px">
+          <input type="checkbox" id="logo_ativa" style="width:16px;height:16px;cursor:pointer;margin:0">
+          <label for="logo_ativa" style="font-size:12px;cursor:pointer;font-weight:600">Exibir logo nos PDFs</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;display:flex;gap:10px">
+    <button class="btn btn-primary" onclick="salvar()" style="padding:13px 40px;font-size:15px;font-weight:900">Salvar todas as configuracoes</button>
+  </div>
+  <div class="aviso av-ok" id="avisoOk" style="margin-top:10px"></div>
+  <div class="aviso av-erro" id="avisoErro" style="margin-top:10px"></div>
+</div>
+
+<script>
+aplicarTemaAtual()
+const { getConfig, setConfig } = require('../js/db.js')
+const { ipcRenderer } = require('electron')
+
+const camposClinica = ['clinica_nome','clinica_cnpj','clinica_endereco','clinica_telefone','clinica_email','clinica_site']
+
+function formatCodigoClinica(value) {
+  return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '')
+}
+
+function carregar() {
+  camposClinica.forEach(c => {
+    const el = document.getElementById(c)
+    if (el) el.value = getConfig(c, '')
+  })
+
+  // Campos do medico: prioriza chave nova, mantendo compatibilidade com dados antigos.
+  document.getElementById('rt_nome').value = getConfig('rt_nome', getConfig('perfilA_nome', ''))
+  document.getElementById('rt_especialidade').value = getConfig('rt_especialidade', getConfig('perfilA_especialidade', ''))
+  document.getElementById('rt_crm').value = getConfig('rt_crm', getConfig('perfilA_crm', ''))
+
+  const logoData = getConfig('logo_data', getConfig('logo_data_A', ''))
+  const logoAtiva = getConfig('logo_ativa', getConfig('logo_ativa_A', '1')) === '1'
+  document.getElementById('logo_ativa').checked = logoAtiva
+
+  if (logoData) {
+    document.getElementById('logoImg').src = logoData
+    document.getElementById('logoImg').style.display = 'block'
+    document.getElementById('logoPlaceholder').style.display = 'none'
+    document.getElementById('btnRemLogo').style.display = 'inline-flex'
+  }
+
+  try {
+    document.getElementById('licencaAtual').textContent = localStorage.getItem('@MEDCORE:licenca') || 'Nao ativada'
+  } catch (_) {
+    document.getElementById('licencaAtual').textContent = 'Nao ativada'
+  }
+
+  document.getElementById('workspace_codigo').value = formatCodigoClinica(getConfig('sync_workspace_key', ''))
+}
+
+function salvar() {
+  camposClinica.forEach(c => {
+    const el = document.getElementById(c)
+    if (el) setConfig(c, el.value.trim())
+  })
+
+  const nome = document.getElementById('rt_nome').value.trim()
+  const esp = document.getElementById('rt_especialidade').value.trim()
+  const crm = document.getElementById('rt_crm').value.trim()
+  const logoAtiva = document.getElementById('logo_ativa').checked ? '1' : '0'
+
+  setConfig('rt_nome', nome)
+  setConfig('rt_especialidade', esp)
+  setConfig('rt_crm', crm)
+  setConfig('logo_ativa', logoAtiva)
+
+  // Compatibilidade com versoes antigas
+  setConfig('perfilA_nome', nome)
+  setConfig('perfilA_especialidade', esp)
+  setConfig('perfilA_crm', crm)
+  setConfig('perfilA_label', 'Padrao')
+  setConfig('perfil_ativo', 'A')
+  setConfig('logo_ativa_A', logoAtiva)
+
+  aviso('ok', 'Configuracoes salvas com sucesso!')
+}
+
+function carregarLogo(input) {
+  const file = input.files && input.files[0]
+  if (!file) return
+
+  if (file.size > 600000) {
+    avisoModal('Imagem muito grande. Use menor que 600KB.')
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = e => {
+    const data = e.target.result
+    setConfig('logo_data', data)
+    setConfig('logo_data_A', data) // compatibilidade
+    document.getElementById('logoImg').src = data
+    document.getElementById('logoImg').style.display = 'block'
+    document.getElementById('logoPlaceholder').style.display = 'none'
+    document.getElementById('btnRemLogo').style.display = 'inline-flex'
+    aviso('ok', 'Logo carregada com sucesso!')
+  }
+  reader.readAsDataURL(file)
+}
+
+function removerLogo() {
+  confirmar('Remover a logo da clinica?', ok => {
+    if (!ok) return
+    setConfig('logo_data', '')
+    setConfig('logo_data_A', '')
+    document.getElementById('logoImg').src = ''
+    document.getElementById('logoImg').style.display = 'none'
+    document.getElementById('logoPlaceholder').style.display = 'block'
+    document.getElementById('btnRemLogo').style.display = 'none'
+  })
+}
+
+async function trocarCodigoClinica() {
+  const input = document.getElementById('workspace_codigo')
+  const novo = formatCodigoClinica(input.value)
+  const atual = formatCodigoClinica(getConfig('sync_workspace_key', ''))
+  input.value = novo
+
+  if (!novo) {
+    aviso('erro', 'Digite o codigo da clinica.')
+    return
+  }
+
+  if (novo === atual) {
+    aviso('ok', 'Este codigo da clinica ja esta ativo.')
+    return
+  }
+
+  confirmar(`Deseja logar no codigo da clinica ${novo}?`, async ok => {
+    if (!ok) return
+
+    try {
+      let resultado = null
+      if (parent && typeof parent.medcoreSwitchWorkspace === 'function') {
+        resultado = await parent.medcoreSwitchWorkspace(novo)
+      } else {
+        const r = await ipcRenderer.invoke('workspace:enter', { workspaceKey: novo })
+        resultado = r && r.ok
+          ? { ok: true, workspaceKey: novo, message: `Codigo da clinica alterado para ${novo}.` }
+          : { ok: false, message: (r && r.message) || 'Falha ao logar no codigo da clinica.' }
+      }
+
+      if (!resultado || !resultado.ok) {
+        aviso('erro', (resultado && resultado.message) || 'Nao foi possivel logar no codigo da clinica.')
+        return
+      }
+
+      setConfig('sync_workspace_key', novo)
+      setConfig('workspace_key', novo)
+      aviso('ok', resultado.message || `Codigo da clinica alterado para ${novo}.`)
+    } catch (err) {
+      aviso('erro', err && err.message ? err.message : String(err))
+    }
+  })
+}
+
+carregar()
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="light">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/licenca.js"></script>
+  <script src="../js/util.js"></script>
+</head>
+<body>
+<div class="lic-body">
+  <div class="lic-box">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,#2563eb,#0891b2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 20px rgba(37,99,235,0.35)">??</div>
+      <div>
+        <div style="font-size:26px;font-weight:900;color:var(--fg)">Med<span style="color:#0891b2">Core</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Ativacao online por chave</div>
+      </div>
+    </div>
+
+    <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:6px">Digite sua chave de ativacao</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6">
+      A chave foi enviada apos a compra. Cada chave libera ate 5 computadores da mesma clinica.<br>
+      O acesso e validado online toda vez que o app abre.
+    </div>
+
+    <input class="lic-input" id="inputChave" maxlength="28"
+      placeholder="MEDCORE-XXXX-XXXX-XXXX-XXXX"
+      oninput="fmt(this)" onkeydown="if(event.key==='Enter')ativar()">
+
+    <button class="lic-btn" id="btnAtivar" onclick="ativar()">?? Entrar / Ativar</button>
+
+    <div style="background:var(--red-bg);border:1px solid rgba(220,38,38,.25);color:var(--red);border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;margin-top:12px;display:none;white-space:pre-line" id="erro"></div>
+
+    <div style="background:var(--green-bg);border:1px solid rgba(22,163,74,.25);color:var(--green);border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;margin-top:12px;display:none" id="ok"></div>
+
+    <div style="text-align:center;margin-top:22px;font-size:11px;color:var(--muted)">
+      Suporte: WhatsApp (11) 94898-1459 ? GHZPLUGIN@GMAIL.COM
+    </div>
+  </div>
+</div>
+<script>
+aplicarTemaAtual()
+const { ipcRenderer } = require('electron')
+const { setConfig } = require('../js/db.js')
+
+const input = document.getElementById('inputChave')
+input.value = normalizarChaveMC(getLicencaSalvaMC())
+setTimeout(() => input.focus(), 100)
+
+function fmt(inp) {
+  inp.value = normalizarChaveMC(inp.value)
+}
+
+function mostrarErro(msg) {
+  const erro = document.getElementById('erro')
+  erro.textContent = msg || 'Nao foi possivel validar a licenca.'
+  erro.style.display = 'block'
+  document.getElementById('ok').style.display = 'none'
+  input.style.borderColor = 'var(--red)'
+  setTimeout(() => { input.style.borderColor = '' }, 4000)
+}
+
+async function ativar() {
+  const chave = normalizarChaveMC(input.value)
+  const btn = document.getElementById('btnAtivar')
+  if (!chave || chave.length < 24) {
+    mostrarErro('Digite a chave de ativacao completa.')
+    return
+  }
+
+  btn.disabled = true
+  btn.textContent = 'Validando online...'
+  document.getElementById('erro').style.display = 'none'
+
+  try {
+    const res = await ipcRenderer.invoke('license:activate', { licenseKey: chave })
+    if (!res || !res.ok) {
+      mostrarErro((res && res.message) || 'Licenca nao liberada.')
+      return
+    }
+
+    salvarSessaoLicencaMC(res.licenseKey || chave)
+    setConfig('license_key', res.licenseKey || chave)
+    setConfig('workspace_key', res.workspaceKey || '')
+    setConfig('sync_workspace_key', res.workspaceKey || '')
+    setConfig('auth_provider', 'license')
+    setConfig('auth_user_id', `license:${res.licenseKey || chave}`)
+    setConfig('auth_user_email', 'medcore@license.local')
+    setConfig('sync_enabled', '1')
+
+    const ok = document.getElementById('ok')
+    ok.textContent = res.activated ? 'Computador ativado com sucesso. Entrando...' : 'Licenca validada. Entrando...'
+    ok.style.display = 'block'
+    setTimeout(() => { window.location.href = '../index.html' }, 700)
+  } catch (err) {
+    mostrarErro(err && err.message ? err.message : String(err))
+  } finally {
+    btn.disabled = false
+    btn.textContent = '?? Entrar / Ativar'
+  }
+}
+</script>
+</body>
+</html>

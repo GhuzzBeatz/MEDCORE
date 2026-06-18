@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/util.js"></script>
+<style>
+/* Editor de texto estilo Word */
+.editor-toolbar{display:flex;align-items:center;gap:4px;padding:8px 12px;background:var(--card2);border:1px solid var(--border);border-bottom:none;border-radius:10px 10px 0 0;flex-wrap:wrap}
+.tb-btn{background:none;border:1px solid transparent;border-radius:5px;padding:5px 9px;cursor:pointer;font-size:13px;color:var(--fg2);font-family:inherit;transition:all .1s;min-width:30px;display:inline-flex;align-items:center;justify-content:center}
+.tb-btn:hover{background:var(--card);border-color:var(--border);color:var(--fg)}
+.tb-btn.ativo{background:var(--primary-bg);border-color:var(--primary-bdr);color:var(--primary)}
+.tb-sep{width:1px;height:22px;background:var(--border);margin:0 4px;flex-shrink:0}
+.tb-select{background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--fg);font-size:12px;cursor:pointer;outline:none;font-family:inherit}
+#editor{
+  min-height:500px;padding:24px;
+  background:var(--card);border:1px solid var(--border);border-radius:0 0 10px 10px;
+  outline:none;font-size:14px;line-height:1.9;color:var(--fg);
+  font-family:Arial,sans-serif;
+}
+#editor:focus{border-color:var(--primary)}
+#editor p{margin:0 0 8px 0}
+#editor h1{font-size:18px;font-weight:800;color:var(--fg);margin:16px 0 8px}
+#editor h2{font-size:15px;font-weight:700;color:var(--fg);margin:12px 0 6px}
+#editor ul,#editor ol{padding-left:24px;margin:4px 0}
+#editor li{margin:3px 0}
+#editor blockquote{border-left:4px solid var(--primary);padding:8px 14px;margin:8px 0;background:var(--primary-bg);border-radius:0 6px 6px 0;color:var(--fg2)}
+#editor table{border-collapse:collapse;width:100%;margin:8px 0}
+#editor td,#editor th{border:1px solid var(--border);padding:6px 10px;font-size:13px}
+#editor th{background:var(--card2);font-weight:700}
+.placeholder{color:var(--muted);pointer-events:none}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="page-header">
+    <div><div class="page-title">📋 Laudo de Exames</div><div class="page-sub">Editor de texto livre — escreva ou carregue um modelo e edite o que for necessário</div></div>
+    <div style="display:flex;gap:8px;align-self:center">
+      <button class="btn btn-ghost" onclick="limpar()">🗑️ Limpar</button>
+      <button class="btn btn-primary" onclick="gerarPDF()" style="padding:10px 20px">🖨️ Gerar PDF</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:16px">
+
+    <!-- EDITOR PRINCIPAL -->
+    <div>
+      <!-- Modelos pré-prontos -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:12px;color:var(--muted);font-weight:700">Modelo:</span>
+        <select class="tb-select" onchange="carregarModelo(this.value)">
+          <option value="">— Selecione um modelo pré-pronto —</option>
+          <option value="eletro">Eletrocardiograma (ECG)</option>
+          <option value="espiro">Espirometria</option>
+          <option value="audiometria">Audiometria Tonal</option>
+          <option value="visao">Acuidade Visual</option>
+          <option value="bioquimico">Exames Laboratoriais</option>
+          <option value="ocupacional">Avaliação Ocupacional</option>
+          <option value="livre">Em branco</option>
+        </select>
+        <span style="font-size:11px;color:var(--muted)">← Carrega o modelo e você edita à vontade</span>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="editor-toolbar">
+        <!-- Fonte -->
+        <select class="tb-select" onchange="execCmd('fontName',this.value)" title="Fonte">
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Verdana">Verdana</option>
+        </select>
+        <select class="tb-select" onchange="execCmd('fontSize',this.value)" title="Tamanho">
+          <option value="2">10</option>
+          <option value="3" selected>12</option>
+          <option value="4">14</option>
+          <option value="5">16</option>
+          <option value="6">18</option>
+          <option value="7">24</option>
+        </select>
+        <div class="tb-sep"></div>
+        <!-- Formatação -->
+        <button class="tb-btn" onclick="execCmd('bold')" title="Negrito"><b>N</b></button>
+        <button class="tb-btn" onclick="execCmd('italic')" title="Itálico"><i>I</i></button>
+        <button class="tb-btn" onclick="execCmd('underline')" title="Sublinhado"><u>S</u></button>
+        <button class="tb-btn" onclick="execCmd('strikeThrough')" title="Tachado"><s>T</s></button>
+        <div class="tb-sep"></div>
+        <!-- Cor do texto -->
+        <label class="tb-btn" title="Cor do texto">
+          <span style="border-bottom:3px solid #e53e3e">A</span>
+          <input type="color" id="corTexto" style="display:none;width:0;height:0" oninput="execCmd('foreColor',this.value)">
+        </label>
+        <div class="tb-sep"></div>
+        <!-- Alinhamento -->
+        <button class="tb-btn" onclick="execCmd('justifyLeft')"   title="Esquerda">⬅</button>
+        <button class="tb-btn" onclick="execCmd('justifyCenter')" title="Centralizar">≡</button>
+        <button class="tb-btn" onclick="execCmd('justifyRight')"  title="Direita">➡</button>
+        <div class="tb-sep"></div>
+        <!-- Listas -->
+        <button class="tb-btn" onclick="execCmd('insertUnorderedList')" title="Lista com marcadores">• —</button>
+        <button class="tb-btn" onclick="execCmd('insertOrderedList')"   title="Lista numerada">1.</button>
+        <div class="tb-sep"></div>
+        <!-- Recuo -->
+        <button class="tb-btn" onclick="execCmd('outdent')"  title="Diminuir recuo">←→</button>
+        <button class="tb-btn" onclick="execCmd('indent')"   title="Aumentar recuo">→→</button>
+        <div class="tb-sep"></div>
+        <!-- Título / Destaques -->
+        <button class="tb-btn" onclick="execCmd('formatBlock','h2')"      title="Título">T1</button>
+        <button class="tb-btn" onclick="execCmd('formatBlock','h3')"      title="Subtítulo">T2</button>
+        <button class="tb-btn" onclick="execCmd('formatBlock','p')"       title="Parágrafo normal">¶</button>
+        <button class="tb-btn" onclick="execCmd('formatBlock','blockquote')" title="Destaque">❝</button>
+        <div class="tb-sep"></div>
+        <!-- Linha horizontal -->
+        <button class="tb-btn" onclick="inserirLinha()" title="Linha separadora">—</button>
+        <!-- Desfazer/Refazer -->
+        <div class="tb-sep"></div>
+        <button class="tb-btn" onclick="execCmd('undo')" title="Desfazer">↩</button>
+        <button class="tb-btn" onclick="execCmd('redo')" title="Refazer">↪</button>
+      </div>
+
+      <!-- Área de edição -->
+      <div id="editor" contenteditable="true" spellcheck="true"
+        oninput="atualizarPreview()"
+        onkeydown="tratarEnter(event)">
+        <p style="color:var(--muted)">Selecione um modelo acima ou comece a digitar seu laudo aqui...</p>
+      </div>
+    </div>
+
+    <!-- PAINEL LATERAL -->
+    <div>
+      <div class="form-card">
+        <div class="form-card-title">👤 Dados do Cabeçalho</div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Paciente *</label>
+          <div style="position:relative">
+            <input id="pacBusca" placeholder="Buscar paciente..." oninput="filtrarPac()" autocomplete="off">
+            <div id="acPac" style="position:absolute;top:100%;left:0;right:0;background:var(--card2);border:1px solid var(--primary);border-top:none;border-radius:0 0 8px 8px;z-index:999;max-height:160px;overflow-y:auto;display:none"></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Data</label>
+          <input type="date" id="dataLaudo">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Médico Responsável</label>
+          <select id="medicoLaudo" onchange="atualizarPreview()">
+            <option value="">Selecione...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Título do Laudo</label>
+          <input id="tituloLaudo" placeholder="Ex: Laudo de Eletrocardiograma" oninput="atualizarPreview()">
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">🖼️ Logo no PDF</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--fg2)">
+          <input type="checkbox" id="laudoComLogo" checked style="width:15px;height:15px;cursor:pointer">
+          Exibir logomarca no PDF
+        </label>
+      </div>
+
+      <div class="form-card" style="background:var(--primary-bg);border-color:var(--primary-bdr)">
+        <div class="form-card-title">💡 Dicas do Editor</div>
+        <div style="font-size:12px;color:var(--fg2);line-height:1.9">
+          <b>N</b> = Negrito<br>
+          <b>I</b> = Itálico<br>
+          <b>S</b> = Sublinhado<br>
+          <b>T1</b> = Título grande<br>
+          <b>T2</b> = Subtítulo<br>
+          <b>❝</b> = Bloco de destaque<br>
+          <b>—</b> = Linha separadora<br>
+          <b>↩ ↪</b> = Desfazer / Refazer<br><br>
+          Selecione o texto e aplique a formatação desejada.
+        </div>
+      </div>
+
+      <div class="aviso av-ok"  id="avisoOk"  style="margin-top:0"></div>
+      <div class="aviso av-erro" id="avisoErro" style="margin-top:0"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+aplicarTemaAtual()
+const { listarPacientes, listarMedicos, getConfig } = require('../js/db.js')
+const { ipcRenderer } = require('electron')
+
+// ── UTILITÁRIOS ─────────────────────────────────────────────
+function execCmd(cmd, val) {
+  document.getElementById('editor').focus()
+  document.execCommand(cmd, false, val || null)
+}
+function inserirLinha() {
+  execCmd('insertHTML', '<hr style="border:none;border-top:1px solid #ccc;margin:12px 0">')
+}
+function tratarEnter(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    document.execCommand('insertParagraph', false)
+    e.preventDefault()
+  }
+}
+
+// ── AUTOCOMPLETE PACIENTE ───────────────────────────────────
+function filtrarPac() {
+  const b = document.getElementById('pacBusca').value.toLowerCase().trim()
+  const lista = document.getElementById('acPac')
+  if (!b) { lista.style.display='none'; return }
+  const pac = listarPacientes(b).slice(0,8)
+  lista.innerHTML = pac.map(p=>`
+    <div onmousedown="selPac('${p.nome.replace(/'/g,"&#39;")}')"
+      style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;color:var(--fg2)"
+      onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background=''">
+      ${p.nome}
+    </div>`).join('')
+  lista.style.display = pac.length ? 'block' : 'none'
+}
+function selPac(nome) {
+  document.getElementById('pacBusca').value = nome
+  document.getElementById('acPac').style.display = 'none'
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#acPac') && e.target.id !== 'pacBusca')
+    document.getElementById('acPac').style.display = 'none'
+})
+
+// ── CARREGAR MÉDICOS ────────────────────────────────────────
+function carregarMedicos() {
+  const el = document.getElementById('medicoLaudo')
+  el.innerHTML = '<option value="">Selecione...</option>'
+  listarMedicos(true).forEach(m =>
+    el.innerHTML += `<option value="${m.id}" data-nome="${m.nome}" data-esp="${m.especialidade||''}" data-crm="${m.crm||''}">${m.nome}${m.crm?' — '+m.crm:''}</option>`
+  )
+}
+
+// ── MODELOS PRÉ-PRONTOS ─────────────────────────────────────
+const MODELOS = {
+  eletro: {
+    titulo: 'Laudo de Eletrocardiograma de Repouso',
+    html: `<h2>ELETROCARDIOGRAMA DE REPOUSO</h2>
+<h3>Técnica</h3>
+<p>Registro de 12 derivações em repouso, velocidade de 25mm/s, calibração 1mV/10mm.</p>
+<h3>Achados</h3>
+<p><b>Ritmo:</b> Sinusal regular</p>
+<p><b>Frequência cardíaca:</b> ___bpm</p>
+<p><b>Eixo elétrico:</b> ___°</p>
+<p><b>Intervalo PR:</b> ___ms (normal: 120-200ms)</p>
+<p><b>Duração QRS:</b> ___ms (normal: &lt;120ms)</p>
+<p><b>Intervalo QTc:</b> ___ms</p>
+<p><b>Segmento ST:</b> Isoelétrico em todas as derivações</p>
+<p><b>Ondas T:</b> Normais</p>
+<p><b>Onda P:</b> Normal</p>
+<h3>Conclusão</h3>
+<blockquote>Eletrocardiograma dentro dos limites da normalidade para a faixa etária.</blockquote>`
+  },
+  espiro: {
+    titulo: 'Laudo de Espirometria',
+    html: `<h2>ESPIROMETRIA</h2>
+<h3>Técnica</h3>
+<p>Realizada com espirômetro calibrado segundo normas da ATS/ERS. Mínimo 3 manobras aceitáveis e reprodutíveis.</p>
+<h3>Resultados</h3>
+<p><b>CVF:</b> ___L (___% do previsto)</p>
+<p><b>VEF1:</b> ___L (___% do previsto)</p>
+<p><b>Relação VEF1/CVF:</b> ___%</p>
+<p><b>FEF 25-75%:</b> ___L/s (___% do previsto)</p>
+<p><b>PFE:</b> ___L/s</p>
+<h3>Conclusão</h3>
+<blockquote>Espirometria com padrão ventilatório dentro da normalidade. / Espirometria com distúrbio ventilatório obstrutivo leve/moderado/grave.</blockquote>
+<p><b>Pós-broncodilatador:</b> não realizado.</p>`
+  },
+  audiometria: {
+    titulo: 'Laudo de Audiometria Tonal Liminar',
+    html: `<h2>AUDIOMETRIA TONAL LIMINAR</h2>
+<h3>Técnica</h3>
+<p>Audiometria tonal liminar realizada em cabine acusticamente tratada, com audiômetro calibrado.</p>
+<h3>Resultados</h3>
+<p><b>Orelha Direita (OD):</b></p>
+<p>250Hz: ___dB | 500Hz: ___dB | 1000Hz: ___dB | 2000Hz: ___dB | 3000Hz: ___dB | 4000Hz: ___dB | 8000Hz: ___dB</p>
+<p><b>Orelha Esquerda (OE):</b></p>
+<p>250Hz: ___dB | 500Hz: ___dB | 1000Hz: ___dB | 2000Hz: ___dB | 3000Hz: ___dB | 4000Hz: ___dB | 8000Hz: ___dB</p>
+<h3>Conclusão</h3>
+<blockquote>Limiar auditivo dentro dos padrões de normalidade bilateralmente. / Perda auditiva neurossensorial bilateral nas frequências altas, compatível / não compatível com PAIR.</blockquote>`
+  },
+  visao: {
+    titulo: 'Laudo de Avaliação de Acuidade Visual',
+    html: `<h2>AVALIAÇÃO DE ACUIDADE VISUAL</h2>
+<h3>Técnica</h3>
+<p>Avaliação realizada com tabela de Snellen a 5 metros.</p>
+<h3>Resultados</h3>
+<p><b>Olho Direito (OD):</b> ___/20</p>
+<p><b>Olho Esquerdo (OE):</b> ___/20</p>
+<p><b>Visão binocular:</b> ___/20</p>
+<p><b>Uso de correção óptica:</b> ( ) Sim &nbsp; ( ) Não</p>
+<h3>Conclusão</h3>
+<blockquote>Acuidade visual dentro dos parâmetros normais. / Acuidade visual com redução em OD/OE, recomendada avaliação oftalmológica especializada.</blockquote>`
+  },
+  bioquimico: {
+    titulo: 'Laudo de Exames Laboratoriais',
+    html: `<h2>RESULTADO DE EXAMES LABORATORIAIS</h2>
+<p><b>Coleta:</b> Jejum de ___ horas</p>
+<h3>Hemograma Completo</h3>
+<p><b>Hemácias:</b> ___ milhões/mm³ &nbsp;|&nbsp; VR: H 4,5-5,9 / M 4,1-5,1</p>
+<p><b>Hemoglobina:</b> ___ g/dL &nbsp;|&nbsp; VR: H 13-17 / M 12-16</p>
+<p><b>Leucócitos:</b> ___ /mm³ &nbsp;|&nbsp; VR: 4.000-11.000</p>
+<p><b>Plaquetas:</b> ___ /mm³ &nbsp;|&nbsp; VR: 150.000-400.000</p>
+<h3>Bioquímica</h3>
+<p><b>Glicemia:</b> ___ mg/dL &nbsp;|&nbsp; VR: 70-99</p>
+<p><b>Colesterol Total:</b> ___ mg/dL</p>
+<p><b>Triglicerídeos:</b> ___ mg/dL</p>
+<h3>Conclusão</h3>
+<blockquote>Resultados dentro dos parâmetros de normalidade. / Alterações descritas acima requerem acompanhamento clínico.</blockquote>`
+  },
+  ocupacional: {
+    titulo: 'Laudo de Avaliação Clínica Ocupacional',
+    html: `<h2>AVALIAÇÃO CLÍNICA OCUPACIONAL</h2>
+<h3>Anamnese Ocupacional</h3>
+<p>Paciente refere trabalhar como ___. Tempo de exposição: ___ anos. Descreve exposição a: ___.</p>
+<h3>Queixas e Histórico</h3>
+<p>___</p>
+<h3>Exame Físico</h3>
+<p><b>Geral:</b> Bom estado geral, lúcido e orientado.</p>
+<p><b>PA:</b> ___mmHg &nbsp;|&nbsp; <b>FC:</b> ___bpm &nbsp;|&nbsp; <b>Peso:</b> ___kg &nbsp;|&nbsp; <b>Altura:</b> ___cm</p>
+<p><b>Aparelho respiratório:</b> ___</p>
+<p><b>Aparelho cardiovascular:</b> ___</p>
+<p><b>Aparelho locomotor:</b> ___</p>
+<h3>Conclusão</h3>
+<blockquote>Trabalhador apto / inapto para a função. ___</blockquote>`
+  },
+  livre: {
+    titulo: '',
+    html: '<p></p>'
+  }
+}
+
+function carregarModelo(key) {
+  if (!key) return
+  const m = MODELOS[key]
+  document.getElementById('editor').innerHTML = m.html
+  if (m.titulo) document.getElementById('tituloLaudo').value = m.titulo
+  document.getElementById('editor').focus()
+}
+
+// ── GERAR PDF ───────────────────────────────────────────────
+async function gerarPDF() {
+  const pac    = document.getElementById('pacBusca').value.trim()
+  const titulo = document.getElementById('tituloLaudo').value.trim() || 'LAUDO DE EXAME'
+  const conteudo = document.getElementById('editor').innerHTML
+  const medSel = document.getElementById('medicoLaudo')
+  const medNome = medSel.selectedOptions[0]?.dataset.nome || ''
+  const medEsp  = medSel.selectedOptions[0]?.dataset.esp  || ''
+  const medCrm  = medSel.selectedOptions[0]?.dataset.crm  || ''
+  const data    = document.getElementById('dataLaudo').value
+  const usarLogo = document.getElementById('laudoComLogo').checked
+
+  if (!pac) return aviso('erro','Informe o nome do paciente.')
+
+  const clinica    = getConfig('clinica_nome','Clínica')
+  const clinicaEnd = getConfig('clinica_endereco','')
+  const clinicaTel = getConfig('clinica_telefone','')
+  const logoData   = getConfig('logo_data','')
+  const logoBloco  = (logoData && usarLogo) ? `<div style="text-align:center;margin-bottom:10px"><img src="${logoData}" style="max-height:72px;display:block;margin:0 auto"></div>` : ''
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;padding:18mm;color:#000;background:#fff}
+  .header{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:18px}
+  .header h1{font-size:15px;text-transform:uppercase;margin:4px 0}
+  .header .sub{font-size:11px;color:#333;margin-top:2px}
+  .header .med{font-size:12px;color:#444;margin-top:5px}
+  .titulo-laudo{text-align:center;font-size:14px;font-weight:bold;letter-spacing:.08em;border:1.5px solid #000;padding:7px;margin-bottom:14px;text-transform:uppercase}
+  .info{font-size:12px;margin-bottom:5px}
+  .conteudo{font-size:13px;line-height:1.9;margin-top:14px}
+  .conteudo h2{font-size:14px;font-weight:bold;border-bottom:1px solid #ccc;padding-bottom:4px;margin:14px 0 8px;text-transform:uppercase;letter-spacing:.05em}
+  .conteudo h3{font-size:12px;font-weight:bold;text-transform:uppercase;color:#555;margin:10px 0 5px;letter-spacing:.04em}
+  .conteudo p{margin:3px 0;line-height:1.8}
+  .conteudo blockquote{border-left:4px solid #000;padding:8px 14px;margin:10px 0;background:#f5f5f5;font-weight:600}
+  .conteudo ul,.conteudo ol{padding-left:20px;margin:4px 0}
+  .conteudo li{margin:3px 0}
+  .conteudo hr{border:none;border-top:1px solid #ccc;margin:12px 0}
+  .footer{margin-top:60px;text-align:center;font-size:11px;border-top:1px solid #000;padding-top:8px}
+  .rodape{font-size:9px;text-align:center;margin-top:20px;color:#777;border-top:1px dotted #ccc;padding-top:4px}
+  @media print{button{display:none}}
+</style></head><body>
+<div class="header">
+  ${logoBloco}
+  <h1>${clinica}</h1>
+  <div class="sub">${clinicaEnd}${clinicaTel?' | Tel: '+clinicaTel:''}</div>
+  <div class="med">${medNome}${medEsp?'<br>'+medEsp:''}${medCrm?'<br>CRM: '+medCrm:''}</div>
+</div>
+<div class="titulo-laudo">${titulo}</div>
+<div class="info"><b>Paciente:</b> ${pac.toUpperCase()}</div>
+<div class="info"><b>Data:</b> ${data?data.split('-').reverse().join('/'):new Date().toLocaleDateString('pt-BR')}</div>
+<div class="conteudo">${conteudo}</div>
+<div class="footer">
+  ${medNome}<br>
+  ${medEsp||''}<br>
+  ${medCrm?'CRM: '+medCrm:''}<br>
+  Assinatura e Carimbo
+</div>
+<div class="rodape">MedCore — GHZ Plugin | Emitido em: ${new Date().toLocaleDateString('pt-BR')}</div>
+</body></html>`
+
+  const btn = document.querySelector('[onclick="gerarPDF()"]')
+  btn.disabled=true; btn.textContent='⏳ Gerando...'
+  try {
+    const r = await ipcRenderer.invoke('salvar-pdf', {
+      htmlContent: html,
+      nomeArquivo: `Laudo_${pac.split(' ')[0]}_${dataHoje()}.pdf`
+    })
+    if (r.sucesso) aviso('ok','✅ Laudo salvo: '+r.caminho)
+    else if (r.motivo !== 'cancelado') aviso('erro','Erro ao gerar PDF.')
+  } catch(e) { aviso('erro','Erro: '+e.message) }
+  finally { btn.disabled=false; btn.textContent='🖨️ Gerar PDF' }
+}
+
+function limpar() {
+  confirmar('Limpar o editor?', ok => {
+    if (!ok) return
+    document.getElementById('editor').innerHTML = '<p></p>'
+    document.getElementById('tituloLaudo').value = ''
+  }, 'Limpar')
+}
+
+function atualizarPreview() { /* futuro */ }
+
+carregarMedicos()
+document.getElementById('dataLaudo').value = dataHoje()
+</script>
+</body></html>

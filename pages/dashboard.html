@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header">
+    <div><div class="page-title">🏠 Dashboard</div><div class="page-sub" id="dataHoje"></div></div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card"><div><div class="kpi-label">Pacientes</div><div class="kpi-val" id="kpiPac">0</div><div class="kpi-sub">cadastrados</div></div><div class="kpi-icon ki-blue">👤</div></div>
+    <div class="kpi-card"><div><div class="kpi-label">Médicos Ativos</div><div class="kpi-val" id="kpiMed">0</div><div class="kpi-sub">cadastrados</div></div><div class="kpi-icon ki-teal">🩺</div></div>
+    <div class="kpi-card"><div><div class="kpi-label">Consultas Hoje</div><div class="kpi-val" id="kpiHoje" style="color:var(--primary)">0</div><div class="kpi-sub">agendadas</div></div><div class="kpi-icon ki-blue">📅</div></div>
+    <div class="kpi-card"><div><div class="kpi-label">Consultas no Mês</div><div class="kpi-val" id="kpiMes">0</div><div class="kpi-sub">agendadas</div></div><div class="kpi-icon ki-purple">📆</div></div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card"><div><div class="kpi-label">Receita do Mês</div><div class="kpi-val sm" id="kpiReceita" style="color:var(--green)">R$ 0,00</div><div class="kpi-sub">somente receitas</div></div><div class="kpi-icon ki-green">💵</div></div>
+    <div class="kpi-card"><div><div class="kpi-label">Despesas do Mês</div><div class="kpi-val sm" id="kpiDespesa" style="color:var(--red)">R$ 0,00</div><div class="kpi-sub">somente despesas</div></div><div class="kpi-icon ki-red">📉</div></div>
+    <div class="kpi-card"><div><div class="kpi-label">Saldo do Mês</div><div class="kpi-val sm" id="kpiSaldo">R$ 0,00</div><div class="kpi-sub">receita − despesa</div></div><div class="kpi-icon ki-purple">💰</div></div>
+    <div class="kpi-card"><div><div class="kpi-label">Alertas Estoque</div><div class="kpi-val" id="kpiEstoque" style="color:var(--orange)">0</div><div class="kpi-sub">abaixo do mínimo</div></div><div class="kpi-icon ki-orange">⚠️</div></div>
+  </div>
+
+  <!-- Agenda do dia -->
+  <div class="sec-card">
+    <div class="sec-head">📅 Agenda de Hoje <span style="font-size:11px;color:var(--muted)" id="labelHoje"></span></div>
+    <table><thead><tr><th>Hora</th><th>Paciente</th><th>Médico</th><th>Tipo</th><th>Convênio</th><th>Status</th><th style="text-align:right">Valor</th></tr></thead>
+    <tbody id="tbHoje"><tr><td colspan="7" class="empty">Carregando...</td></tr></tbody></table>
+  </div>
+
+  <!-- Alertas de estoque -->
+  <div class="sec-card">
+    <div class="sec-head">⚠️ Estoque com Alerta</div>
+    <table><thead><tr><th>Item</th><th>Categoria</th><th style="text-align:center">Qtd Atual</th><th style="text-align:center">Mínimo</th><th>Validade</th></tr></thead>
+    <tbody id="tbEstoque"><tr><td colspan="5" class="empty">Verificando estoque...</td></tr></tbody></table>
+  </div>
+</div>
+
+<script>
+aplicarTemaAtual()
+const { getDashStats, listarEstoque } = require('../js/db.js')
+
+const hoje = new Date()
+document.getElementById('dataHoje').textContent = hoje.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+document.getElementById('labelHoje').textContent = hoje.toLocaleDateString('pt-BR')
+
+try {
+  const s = getDashStats()
+  document.getElementById('kpiPac').textContent     = s.totalPacientes
+  document.getElementById('kpiMed').textContent     = s.totalMedicos
+  document.getElementById('kpiHoje').textContent    = s.consultasHoje
+  document.getElementById('kpiMes').textContent     = s.consultasMes
+  document.getElementById('kpiReceita').textContent = fmtMoeda(s.receitasMes)
+  document.getElementById('kpiDespesa').textContent = fmtMoeda(s.despesasMes)
+  const saldo = s.receitasMes - s.despesasMes
+  const sEl   = document.getElementById('kpiSaldo')
+  sEl.textContent = fmtMoeda(saldo)
+  sEl.style.color = saldo >= 0 ? 'var(--green)' : 'var(--red)'
+  document.getElementById('kpiEstoque').textContent = s.alertasEstoque
+
+  // Agenda do dia
+  const tb = document.getElementById('tbHoje')
+  tb.innerHTML = s.agendaHoje.length ? s.agendaHoje.map(a=>`
+    <tr>
+      <td><b style="color:var(--fg)">${a.hora}</b></td>
+      <td>${a.paciente_nome||'—'}</td>
+      <td style="color:var(--muted);font-size:12px">${a.medico_nome||'—'}</td>
+      <td><span class="badge b-blue">${a.tipo||'Consulta'}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${a.convenio||'Particular'}</td>
+      <td><span class="badge ${STATUS_CORES[a.status]||'b-blue'}">${a.status}</span></td>
+      <td style="text-align:right;color:var(--green);font-weight:700">${fmtMoeda(a.valor)}</td>
+    </tr>`).join('')
+  : '<tr><td colspan="7" class="empty">Nenhuma consulta agendada para hoje.</td></tr>'
+
+  // Alertas estoque
+  const alertas = listarEstoque().filter(e=>Number(e.quantidade||0)<=Number(e.qtd_minima||0))
+  const tbE     = document.getElementById('tbEstoque')
+  tbE.innerHTML = alertas.length ? alertas.map(e=>`
+    <tr>
+      <td><b style="color:var(--fg)">${e.nome}</b></td>
+      <td><span class="badge b-orange">${e.categoria||'—'}</span></td>
+      <td style="text-align:center"><span class="badge b-red">${e.quantidade} ${e.unidade||''}</span></td>
+      <td style="text-align:center;color:var(--muted);font-size:12px">${e.qtd_minima} ${e.unidade||''}</td>
+      <td style="font-size:12px;color:var(--muted)">${e.validade?fmtData(e.validade):'—'}</td>
+    </tr>`).join('')
+  : '<tr><td colspan="5" class="empty">✅ Todos os itens com estoque adequado.</td></tr>'
+
+} catch(e) { console.error(e) }
+</script>
+</body></html>

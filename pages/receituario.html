@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header"><div><div class="page-title">💊 Receituário</div><div class="page-sub">Emissão de receitas e prescrições médicas</div></div></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div class="form-card">
+        <div class="form-card-title">Dados do Paciente</div>
+        <div class="form-row">
+          <div class="form-group fg3">
+            <label class="form-label">Paciente *</label>
+            <div class="ac-wrap" id="acWrap">
+              <input id="pacBusca" placeholder="Buscar paciente..." oninput="filtrarPac()" autocomplete="off">
+              <div class="ac-list" id="acPac"></div>
+              <input type="hidden" id="pacId">
+            </div>
+          </div>
+          <div class="form-group fg1"><label class="form-label">Data</label><input type="date" id="dataRec"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Médico Prescritor</div>
+        <div class="form-row">
+          <div class="form-group" style="flex:1"><label class="form-label">Médico *</label><select id="medicoRec"></select></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Prescrição</div>
+        <div id="itensReceita"></div>
+        <button class="btn btn-ghost" onclick="addItem()" style="margin-top:10px;width:100%">+ Adicionar Medicamento</button>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Orientações Gerais</div>
+        <textarea id="orientacoes" placeholder="Orientações adicionais ao paciente..." style="min-height:80px"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="gerarReceita()" style="flex:1;padding:13px;font-size:14px;font-weight:900">🖨️ Gerar PDF da Receita</button>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted);white-space:nowrap;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:8px 12px">
+          <input type="checkbox" id="recComLogo" checked style="width:14px;height:14px;cursor:pointer;accent-color:var(--primary)">
+          🖼️ Logo no PDF
+        </label>
+      </div>
+      <div class="aviso av-erro" id="avisoErro" style="margin-top:8px"></div>
+      <div class="aviso av-ok"   id="avisoOk"   style="margin-top:8px"></div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div>
+      <div class="sec-card">
+        <div class="sec-head">👁️ Pré-visualização</div>
+        <div id="preview" style="padding:20px;font-size:13px;color:var(--fg2);min-height:400px">
+          <div style="text-align:center;margin-top:60px;color:var(--muted)">Preencha os dados e a prescrição aparecerá aqui.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+aplicarTemaAtual()
+const { listarPacientes, getPaciente, listarMedicos, getConfig, listarMedicamentos, inserirMedicamento, salvarReceituario } = require('../js/db.js')
+const { ipcRenderer } = require('electron')
+let itensCont = 0
+
+// AUTOCOMPLETE
+function filtrarPac() {
+  const busca = document.getElementById('pacBusca').value.toLowerCase().trim()
+  document.getElementById('pacId').value=''
+  const list  = document.getElementById('acPac')
+  if (!busca) { list.style.display='none'; return }
+  const pac = listarPacientes(busca).slice(0,7)
+  list.innerHTML = pac.map(p=>`<div class="ac-item" onmousedown="selPac(${p.id},'${p.nome.replace(/'/g,"&#39;")}')">${p.nome}<small>${p.cpf||''} ${p.nascimento?'· Nasc: '+fmtData(p.nascimento):''}</small></div>`).join('')
+  list.style.display = pac.length ? 'block' : 'none'
+}
+function selPac(id,nome) { document.getElementById('pacBusca').value=nome; document.getElementById('pacId').value=id; document.getElementById('acPac').style.display='none'; atualizarPreview() }
+document.addEventListener('click',e=>{ if(!document.getElementById('acWrap')?.contains(e.target)) document.getElementById('acPac').style.display='none' })
+
+function carregarMedicos() {
+  const el = document.getElementById('medicoRec')
+  el.innerHTML = '<option value="">— sem médico —</option>'
+  listarMedicos(true).forEach(m=>el.innerHTML+=`<option value="${m.id}" data-nome="${m.nome}" data-crm="${m.crm||''}" data-esp="${m.especialidade||''}">${m.nome}${m.crm?' — '+m.crm:''}</option>`)
+  el.innerHTML += '<option value="outro" data-nome="Outro profissional" data-crm="" data-esp="">Outro profissional</option>'
+}
+
+function addItem() {
+  itensCont++
+  const d = document.getElementById('itensReceita')
+  const div = document.createElement('div')
+  div.id = 'item_'+itensCont
+  div.style.cssText = 'background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px'
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:11px;font-weight:800;color:var(--primary);text-transform:uppercase">Medicamento ${itensCont}</span>
+      <button class="btn-danger" onclick="document.getElementById('item_${itensCont}').remove();atualizarPreview()">🗑️</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group fg3">
+            <label class="form-label">Medicamento</label>
+            <div style="position:relative">
+              <input class="med-nome" placeholder="Digite para buscar ou novo medicamento..." oninput="filtrarMed(this);atualizarPreview()" autocomplete="off">
+              <div class="med-sugest" style="position:absolute;top:100%;left:0;right:0;background:var(--card2);border:1px solid var(--primary);border-top:none;border-radius:0 0 8px 8px;z-index:999;max-height:160px;overflow-y:auto;display:none"></div>
+            </div>
+          </div>
+          <div class="form-group fg1"><label class="form-label">Qtd</label><input class="med-qtd" placeholder="Ex: 1 cx" oninput="atualizarPreview()"></div>
+    </div>
+    <div class="form-group" style="margin-top:8px"><label class="form-label">Posologia / Modo de Usar</label><textarea class="med-pos" placeholder="Ex: Tomar 1 comprimido de 8/8h por 7 dias" style="min-height:55px" oninput="atualizarPreview()"></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--muted)">
+        <input type="checkbox" class="med-salvar" style="width:13px;height:13px;cursor:pointer">
+        Salvar no banco de medicamentos
+      </label>
+    </div>
+  `
+  d.appendChild(div)
+  atualizarPreview()
+}
+
+function coletarItens() {
+  return [...document.getElementById('itensReceita').children].map(div=>({
+    nome: div.querySelector('.med-nome')?.value.trim()||'',
+    qtd:  div.querySelector('.med-qtd')?.value.trim()||'',
+    pos:  div.querySelector('.med-pos')?.value.trim()||''
+  })).filter(i=>i.nome)
+}
+
+function filtrarMed(input) {
+  const b = input.value.toLowerCase().trim()
+  const sugest = input.closest('div').querySelector('.med-sugest')
+  if (!b || b.length < 2) { sugest.style.display='none'; return }
+  const meds = listarMedicamentos(b).slice(0,8)
+  if (!meds.length) { sugest.style.display='none'; return }
+  sugest.innerHTML = meds.map(m=>`
+    <div onmousedown="selecionarMed(this,'${m.nome.replace(/'/g,"&#39;")}','${(m.posologia||'').replace(/'/g,"&#39;")}','${(m.quantidade||'').replace(/'/g,"&#39;")}')"
+      style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;color:var(--fg2)"
+      onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background=''">
+      💊 ${m.nome}
+      ${m.posologia?`<div style="font-size:11px;color:var(--muted)">${m.posologia}${m.quantidade?' · '+m.quantidade:''}</div>`:''}
+    </div>`).join('')
+  sugest.style.display = 'block'
+}
+
+function selecionarMed(el, nome, pos, qtd) {
+  // el = div da sugestão (filho de .med-sugest)
+  const sugest = el.closest('.med-sugest')       // dropdown
+  const relWrap = sugest.parentElement           // div position:relative
+  const input   = relWrap.querySelector('.med-nome')
+  if (input) { input.value = nome; input.focus() }
+  sugest.style.display = 'none'
+  // Preencher posologia e quantidade no item pai
+  const item = relWrap.closest('[id^=item_]')
+  if (item) {
+    const posEl = item.querySelector('.med-pos')
+    const qtdEl = item.querySelector('.med-qtd')
+    if (posEl && pos) posEl.value = pos
+    if (qtdEl && qtd) qtdEl.value = qtd
+  }
+  atualizarPreview()
+}
+
+// Fechar sugestões ao clicar fora
+document.addEventListener('click', e => {
+  document.querySelectorAll('.med-sugest').forEach(el => {
+    if (!el.contains(e.target)) el.style.display='none'
+  })
+})
+
+function atualizarPreview() {
+  const pac     = document.getElementById('pacBusca').value.trim()
+  const medSel  = document.getElementById('medicoRec')
+  const medNome = medSel.selectedOptions[0]?.dataset.nome||''
+  const medCrm  = medSel.selectedOptions[0]?.dataset.crm||''
+  const medEsp  = medSel.selectedOptions[0]?.dataset.esp||''
+  const itens   = coletarItens()
+  const orient  = document.getElementById('orientacoes').value.trim()
+  const clinica = getConfig('clinica_nome','SUA CLÍNICA')
+  const data    = document.getElementById('dataRec').value
+
+  document.getElementById('preview').innerHTML = `
+    <div style="border-bottom:2px solid var(--border);padding-bottom:10px;margin-bottom:14px;text-align:center">
+      <div style="font-size:14px;font-weight:900;color:var(--fg)">${clinica}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${medNome}${medEsp?'<br><small>'+medEsp+'</small>':''} ${medCrm?'<br><small>CRM: '+medCrm+'</small>':''}</div>
+    </div>
+    <div style="text-align:center;font-size:16px;font-weight:800;letter-spacing:.08em;color:var(--primary);border:2px solid var(--primary-bdr);border-radius:8px;padding:6px;margin-bottom:14px">RECEITUÁRIO SIMPLES</div>
+    <div style="margin-bottom:10px;font-size:12px;color:var(--fg2)"><b>Paciente:</b> ${pac||'—'}</div>
+    <div style="margin-bottom:14px;font-size:12px;color:var(--muted)"><b>Data:</b> ${data?fmtData(data):'—'}</div>
+    ${itens.length ? itens.map((i,n)=>`<div style="margin-bottom:12px;padding:10px;background:var(--card2);border-radius:8px;border:1px solid var(--border)"><div style="font-weight:800;color:var(--fg);font-size:13px">${n+1}. ${i.nome}${i.qtd?' — '+i.qtd:''}</div>${i.pos?`<div style="font-size:12px;color:var(--fg2);margin-top:4px">${i.pos}</div>`:''}</div>`).join('') : '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Nenhum medicamento adicionado.</div>'}
+    ${orient?`<div style="margin-top:12px;padding:10px;background:var(--primary-bg);border-radius:8px;border:1px solid var(--primary-bdr)"><div style="font-size:10px;font-weight:800;color:var(--primary);text-transform:uppercase;margin-bottom:4px">Orientações</div><div style="font-size:12px;color:var(--fg2)">${orient}</div></div>`:''}
+    <div style="margin-top:40px;text-align:right;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:8px">Assinatura e Carimbo do Médico</div>
+  `
+}
+
+async function gerarReceita() {
+  const pac    = document.getElementById('pacBusca').value.trim()
+  const medSel = document.getElementById('medicoRec')
+  const medNome= medSel.selectedOptions[0]?.dataset.nome||''
+  const medCrm = medSel.selectedOptions[0]?.dataset.crm||''
+  const medEsp = medSel.selectedOptions[0]?.dataset.esp||''
+  const itens  = coletarItens()
+  const orient = document.getElementById('orientacoes').value.trim()
+  const data   = document.getElementById('dataRec').value
+
+  // Salvar medicamentos novos no banco se checkbox marcado
+  document.querySelectorAll('[id^=item_]').forEach(div => {
+    const salvar = div.querySelector('.med-salvar')?.checked
+    if (salvar) {
+      const nome = div.querySelector('.med-nome')?.value.trim()
+      const pos  = div.querySelector('.med-pos')?.value.trim()
+      const qtd  = div.querySelector('.med-qtd')?.value.trim()
+      if (nome) inserirMedicamento({ nome, posologia:pos, quantidade:qtd })
+    }
+  })
+
+  if (!pac)          return aviso('erro','Informe o paciente.')
+  if (!medSel.value) return aviso('erro','Selecione o médico.')
+  if (!itens.length) return aviso('erro','Adicione pelo menos um medicamento.')
+
+  const clinica   = getConfig('clinica_nome','SUA CLÍNICA')
+  const clinicaCnpj  = getConfig('clinica_cnpj','')
+  const clinicaEnd   = getConfig('clinica_endereco','')
+
+  const logoData  = getConfig('logo_data','')
+  const logoAtiva = document.getElementById('recComLogo')?.checked !== false
+  const logoBloco = (logoData && logoAtiva) ? `<div style="text-align:center;margin-bottom:10px"><img src="${logoData}" style="max-height:72px;display:block;margin:0 auto"></div>` : ''
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;padding:18mm;color:#000;background:#fff}.h{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}.h h1{font-size:16px;text-transform:uppercase}.h .sub{font-size:11px;color:#333;margin-top:2px}.h .med{font-size:12px;color:#555;margin-top:3px}.rec-titulo{text-align:center;font-size:15px;font-weight:bold;letter-spacing:.1em;border:2px solid #000;padding:6px;margin-bottom:14px}.info{font-size:11.5px;margin-bottom:5px}.item{margin-bottom:14px;border-bottom:1px dotted #ccc;padding-bottom:10px}.item-nome{font-size:13px;font-weight:bold}.item-pos{font-size:11.5px;color:#333;margin-top:4px;padding-left:12px}.orient{margin-top:14px;background:#f5f5f5;padding:10px;border-left:3px solid #000}.orient-titulo{font-size:10px;font-weight:bold;text-transform:uppercase;margin-bottom:4px}.orient-txt{font-size:11.5px}.footer{margin-top:50px;text-align:right;font-size:11px;border-top:1px solid #000;padding-top:6px}.rodape{font-size:9px;text-align:center;margin-top:20px;color:#777;border-top:1px dotted #ccc;padding-top:4px}</style></head><body>
+<div class="h">${logoBloco}<h1>${clinica}</h1><div class="sub">${clinicaCnpj?'CNPJ: '+clinicaCnpj+' | ':''}${clinicaEnd}</div></div>
+<div class="rec-titulo">RECEITUÁRIO SIMPLES</div>
+<div class="info"><b>Paciente:</b> ${pac.toUpperCase()}</div>
+<div class="info" style="margin-bottom:14px"><b>Data:</b> ${data?fmtData(data):new Date().toLocaleDateString('pt-BR')}</div>
+${itens.map((i,n)=>`<div class="item"><div class="item-nome">${n+1}. ${i.nome}${i.qtd?' — '+i.qtd:''}</div>${i.pos?`<div class="item-pos">${i.pos}</div>`:''}</div>`).join('')}
+${orient?`<div class="orient"><div class="orient-titulo">Orientações ao Paciente</div><div class="orient-txt">${orient}</div></div>`:''}
+<div class="footer">${medNome}${medEsp?'<br>'+medEsp:''}${medCrm?'<br>CRM: '+medCrm:''}<br>Assinatura e Carimbo</div>>MedCore — GHZ Plugin | ${new Date().toLocaleDateString('pt-BR')}</div>
+</body></html>`
+
+  const btn = document.querySelector('[onclick="gerarReceita()"]')
+  btn.disabled=true; btn.textContent='⏳ Gerando...'
+  try {
+    const r = await ipcRenderer.invoke('salvar-pdf',{htmlContent:html,nomeArquivo:`Receita_${pac.split(' ')[0]}_${dataHoje()}.pdf`})
+    if (r.sucesso) {
+      aviso('ok','Receita salva: '+r.caminho)
+      try {
+        const medSel2 = document.getElementById('medicoRec')
+        salvarReceituario({
+          paciente_id: Number(document.getElementById('pacId').value)||null,
+          paciente_nome: document.getElementById('pacBusca').value.trim(),
+          medico_nome: medSel2?.selectedOptions[0]?.dataset?.nome||'',
+          data: document.getElementById('dataRec').value || dataHoje(),
+          itens: Array.from(document.querySelectorAll('[id^=item_]')).map(it=>({
+            nome: it.querySelector('.med-nome')?.value||'',
+            posologia: it.querySelector('.med-pos')?.value||'',
+            quantidade: it.querySelector('.med-qtd')?.value||''
+          })).filter(i=>i.nome)
+        })
+      } catch(e) {}
+    }
+    else if (r.motivo!=='cancelado') aviso('erro','Erro ao gerar PDF.')
+  } catch(e) { aviso('erro','Erro: '+e.message) }
+  finally { btn.disabled=false; btn.textContent='🖨️ Gerar PDF da Receita' }
+}
+
+carregarMedicos()
+document.getElementById('dataRec').value = dataHoje()
+addItem()
+</script>
+</body></html>

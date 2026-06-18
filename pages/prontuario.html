@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header">
+    <div><div class="page-title">📋 Prontuários</div><div class="page-sub">Consultas, retornos e histórico do paciente</div></div>
+  </div>
+
+  <!-- BUSCA PACIENTE -->
+  <div class="form-card" id="cardBusca">
+    <div class="form-card-title">Selecionar Paciente</div>
+    <div style="display:flex;gap:10px;align-items:flex-end">
+      <div class="form-group" style="flex:1;position:relative">
+        <label class="form-label">Nome do Paciente *</label>
+        <input id="pacienteBusca" placeholder="Digite o nome para buscar..." oninput="filtrarPaciente()" autocomplete="off">
+        <div id="acLista" style="position:absolute;top:100%;left:0;right:0;background:var(--card2);border:1px solid var(--primary);border-top:none;border-radius:0 0 8px 8px;z-index:999;max-height:180px;overflow-y:auto;display:none"></div>
+        <input type="hidden" id="pacienteId">
+      </div>
+      <button class="btn btn-primary" onclick="abrirProntuario()">📂 Abrir Prontuário</button>
+    </div>
+  </div>
+
+  <!-- PAINEL DO PACIENTE -->
+  <div id="painelPaciente" style="display:none">
+
+    <!-- Cabeçalho do paciente -->
+    <div style="background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:16px">
+      <div style="font-size:32px">👤</div>
+      <div style="flex:1">
+        <div style="font-size:16px;font-weight:800;color:var(--fg)" id="pNome"></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px" id="pInfo"></div>
+      </div>
+      <button class="btn btn-ghost" onclick="fecharProntuario()">✕ Fechar</button>
+    </div>
+
+    <!-- ABAS -->
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      <button class="aba-btn active" id="aba-consulta"  onclick="setAba('consulta')">🩺 Nova Consulta / Retorno</button>
+      <button class="aba-btn"       id="aba-historico"  onclick="setAba('historico')">📚 Histórico</button>
+      <button class="aba-btn"       id="aba-exames"     onclick="setAba('exames')">🔬 Solicitar Exames</button>
+    </div>
+
+    <!-- ABA: NOVA CONSULTA / RETORNO -->
+    <div id="secConsulta">
+      <div class="form-card">
+        <div class="form-card-title" id="consultaTitulo">Nova Consulta</div>
+        <div class="form-row">
+          <div class="form-group fg1"><label class="form-label">Data *</label><input type="date" id="data"></div>
+          <div class="form-group fg1"><label class="form-label">Horário</label><input type="time" id="hora"></div>
+          <div class="form-group fg2">
+            <label class="form-label">Tipo de Consulta</label>
+            <select id="tipo_consulta" onchange="atualizarTipoConsulta()">
+              <option value="Consulta">Consulta</option>
+              <option value="Retorno">Retorno</option>
+              <option value="Avaliação">Avaliação</option>
+              <option value="Pré-natal">Pré-natal</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-group fg2"><label class="form-label">Médico</label>
+            <select id="medico_id"><option value="">Selecione...</option></select>
+          </div>
+        </div>
+
+        <!-- SINAIS VITAIS -->
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 8px">Sinais Vitais</div>
+        <div class="form-row">
+          <div class="form-group fg1"><label class="form-label">Pressão Arterial</label><input id="pa" placeholder="120/80 mmHg"></div>
+          <div class="form-group fg1"><label class="form-label">FC (bpm)</label><input id="fc" placeholder="80"></div>
+          <div class="form-group fg1"><label class="form-label">Temperatura (°C)</label><input id="temperatura" placeholder="36.5"></div>
+          <div class="form-group fg1"><label class="form-label">Saturação O₂ (%)</label><input id="saturacao" placeholder="98"></div>
+          <div class="form-group fg1"><label class="form-label">Peso (kg)</label><input id="peso" placeholder="70"></div>
+          <div class="form-group fg1"><label class="form-label">Altura (cm)</label><input id="altura" placeholder="170"></div>
+        </div>
+
+        <!-- ANAMNESE — CAIXA ÚNICA -->
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 8px">Anamnese e Evolução</div>
+        <div style="background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--fg2);margin-bottom:10px;line-height:1.7">
+          💡 Campo livre — descreva queixa principal, histórico, exame físico, hipótese diagnóstica e conduta em texto corrido ou com quebras de linha.
+        </div>
+        <div class="form-group">
+          <label class="form-label">Anotações da Consulta</label>
+          <textarea id="anamnese" style="min-height:200px;font-size:14px;line-height:1.8" placeholder="Paciente relata...&#10;&#10;Exame físico:&#10;&#10;Hipótese diagnóstica:&#10;&#10;Conduta:"></textarea>
+        </div>
+
+        <!-- CID -->
+        <div class="form-row" style="margin-top:10px">
+          <div class="form-group fg1"><label class="form-label">CID-10</label><input id="cid" placeholder="Ex: J06.9"></div>
+          <div class="form-group fg3"><label class="form-label">Diagnóstico</label><input id="diagnostico" placeholder="Ex: Infecção aguda das vias aéreas superiores"></div>
+        </div>
+
+        <div class="form-group" style="margin-top:10px">
+          <label class="form-label">Conduta / Plano Terapêutico</label>
+          <textarea id="conduta" style="min-height:70px" placeholder="Medicamentos, exames solicitados, retorno em X dias..."></textarea>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button class="btn btn-primary" id="btnSalvar" onclick="salvar()">💾 Salvar Consulta</button>
+          <button class="btn-cancel" id="btnCancelar" onclick="cancelar()">Cancelar</button>
+        </div>
+        <div class="aviso av-ok"  id="avisoOk"></div>
+        <div class="aviso av-erro" id="avisoErro"></div>
+      </div>
+    </div>
+
+    <!-- ABA: HISTÓRICO -->
+    <div id="secHistorico" style="display:none">
+      <div class="tbl-wrap">
+        <div class="tbl-top">
+          <span class="tbl-title">📚 Histórico de Consultas</span>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted)">
+              <input type="checkbox" id="pdfComLogo" style="cursor:pointer" checked>
+              🖼️ Logo no PDF
+            </label>
+            <span class="tbl-count" id="ctHistorico"></span>
+          </div>
+        </div>
+        <div id="listaHistorico"></div>
+      </div>
+    </div>
+
+    <!-- ABA: SOLICITAR EXAMES -->
+    <div id="secExames" style="display:none">
+      <div class="form-card">
+        <div class="form-card-title">🔬 Solicitar Exames</div>
+        <div style="background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--fg2);margin-bottom:12px;line-height:1.6">
+          💡 Selecione exames do banco ou adicione novos. O PDF da solicitação sai com logo e dados da clínica.
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:14px;align-items:flex-end;flex-wrap:wrap">
+          <div class="form-group" style="flex:1;min-width:200px">
+            <label class="form-label">Buscar no banco de exames</label>
+            <input id="buscaExame" placeholder="Digite o nome do exame..." oninput="filtrarExamesBanco()">
+          </div>
+          <div class="form-group fg1"><label class="form-label">Data</label><input type="date" id="dataExame"></div>
+        </div>
+
+        <!-- Lista de exames do banco -->
+        <div id="listaExamesBanco" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:14px"></div>
+
+        <!-- Exames selecionados -->
+        <div id="examesSelecionados" style="margin-bottom:14px"></div>
+
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">Observações / Informações ao laboratório</label>
+          <textarea id="obsExame" style="min-height:60px" placeholder="Informações adicionais para o laboratório..."></textarea>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="salvarSolicitacao()">💾 Salvar Solicitação</button>
+          <button class="btn btn-ghost" onclick="imprimirSolicitacao()">🖨️ Imprimir / PDF</button>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted)">
+            <input type="checkbox" id="solComLogo" style="cursor:pointer" checked>
+            🖼️ Logo no PDF
+          </label>
+        </div>
+        <div class="aviso av-ok"  id="avisoOkExame"></div>
+        <div class="aviso av-erro" id="avisoErrExame"></div>
+      </div>
+
+      <!-- Histórico de solicitações -->
+      <div class="tbl-wrap" style="margin-top:14px">
+        <div class="tbl-top"><span class="tbl-title">Solicitações Anteriores</span></div>
+        <div id="historicoSolicitacoes"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZAR CONSULTA -->
+<div class="modal-ov" id="modalConsulta" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box wide">
+    <div class="modal-title" id="modalConsultaTitulo"></div>
+    <div id="modalConsultaConteudo" style="font-size:13px;color:var(--fg2);line-height:1.8;white-space:pre-wrap"></div>
+    <div class="modal-acts">
+      <button class="btn btn-ghost" onclick="document.getElementById('modalConsulta').style.display='none'">Fechar</button>
+      <button class="btn btn-primary" onclick="editarConsultaAberta()">✏️ Editar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.aba-btn{padding:9px 16px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.aba-btn.active{border-color:var(--primary);background:var(--primary-bg);color:var(--fg)}
+.exame-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;transition:background .1s}
+.exame-item:hover{background:var(--card2)}
+.exame-sel{background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:8px;padding:8px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.consulta-card{border-bottom:1px solid var(--border);padding:14px 18px;cursor:pointer;transition:background .1s}
+.consulta-card:hover{background:var(--card2)}
+</style>
+
+<script>
+aplicarTemaAtual()
+const { listarPacientes,getPaciente,listarMedicos,listarProntuarios,getProntuario,inserirProntuario,atualizarProntuario,deletarProntuario,listarExames,listarSolicitacoes,inserirSolicitacao,deletarSolicitacao,getConfig } = require('../js/db.js')
+const { ipcRenderer } = require('electron')
+
+let pacienteAtual = null
+let editandoId    = null
+let consultaAbererId = null
+let examesSel     = []
+let todosPacientes = []
+
+// AUTOCOMPLETE PACIENTE
+function filtrarPaciente() {
+  const b = document.getElementById('pacienteBusca').value.toLowerCase().trim()
+  document.getElementById('pacienteId').value = ''
+  const lista = document.getElementById('acLista')
+  if (!b) { lista.style.display='none'; return }
+  const filtrados = listarPacientes(b).slice(0,8)
+  lista.innerHTML = filtrados.map(p=>`
+    <div onmousedown="selPaciente(${p.id},'${p.nome.replace(/'/g,"&#39;")}')"
+      style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;color:var(--fg2)"
+      onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background=''">
+      ${p.nome}<small style="display:block;font-size:11px;color:var(--muted)">${p.cpf?'CPF: '+p.cpf:p.data_nascimento?'Nasc: '+fmtData(p.data_nascimento):''}</small>
+    </div>`).join('')
+  lista.style.display = filtrados.length ? 'block' : 'none'
+}
+function selPaciente(id, nome) {
+  document.getElementById('pacienteBusca').value = nome
+  document.getElementById('pacienteId').value    = id
+  document.getElementById('acLista').style.display = 'none'
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#acLista') && e.target.id !== 'pacienteBusca')
+    document.getElementById('acLista').style.display='none'
+})
+
+function abrirProntuario() {
+  const id = Number(document.getElementById('pacienteId').value)
+  if (!id) return aviso('erro','Selecione um paciente da lista.')
+  const p = getPaciente(id)
+  if (!p) return
+  pacienteAtual = p
+  document.getElementById('cardBusca').style.display  = 'none'
+  document.getElementById('painelPaciente').style.display = 'block'
+  document.getElementById('pNome').textContent = p.nome
+  const idade = p.data_nascimento ? calcIdade(p.data_nascimento)+' anos' : ''
+  document.getElementById('pInfo').textContent = [p.cpf?'CPF: '+p.cpf:'', idade, p.convenio||''].filter(Boolean).join(' · ')
+  // Preencher médicos
+  const meds = listarMedicos(true)
+  const sel  = document.getElementById('medico_id')
+  sel.innerHTML = '<option value="">Selecione...</option>' + meds.map(m=>`<option value="${m.id}" data-esp="${m.especialidade||''}" data-crm="${m.crm||''}">${m.nome}${m.crm?' — '+m.crm:''}</option>`).join('')
+  // Data padrão hoje
+  document.getElementById('data').value = new Date().toISOString().split('T')[0]
+  document.getElementById('hora').value = new Date().toTimeString().slice(0,5)
+  document.getElementById('dataExame').value = new Date().toISOString().split('T')[0]
+  setAba('consulta')
+}
+
+function fecharProntuario() {
+  pacienteAtual = null
+  document.getElementById('cardBusca').style.display  = 'block'
+  document.getElementById('painelPaciente').style.display = 'none'
+  document.getElementById('pacienteBusca').value = ''
+  document.getElementById('pacienteId').value    = ''
+  cancelar()
+}
+
+function calcIdade(dataNasc) {
+  const nasc  = new Date(dataNasc)
+  const hoje  = new Date()
+  let idade   = hoje.getFullYear() - nasc.getFullYear()
+  const m     = hoje.getMonth() - nasc.getMonth()
+  if (m < 0 || (m===0 && hoje.getDate() < nasc.getDate())) idade--
+  return idade
+}
+
+function setAba(aba) {
+  ['consulta','historico','exames'].forEach(a => {
+    document.getElementById('sec'+a.charAt(0).toUpperCase()+a.slice(1)).style.display = a===aba?'block':'none'
+    document.getElementById('aba-'+a).classList.toggle('active', a===aba)
+  })
+  if (aba==='historico') renderHistorico()
+  if (aba==='exames')    { renderExamesBanco(); renderHistoricoSolicitacoes() }
+}
+
+function atualizarTipoConsulta() {
+  const tipo = document.getElementById('tipo_consulta').value
+  document.getElementById('consultaTitulo').textContent = tipo === 'Retorno' ? '🔄 Registrar Retorno' : '🩺 Nova Consulta'
+}
+
+// ── SALVAR CONSULTA ─────────────────────────────────────────
+function salvar() {
+  if (!pacienteAtual) return
+  const data  = document.getElementById('data').value
+  if (!data) return aviso('erro','Informe a data da consulta.')
+  const d = {
+    paciente_id:   pacienteAtual.id,
+    paciente_nome: pacienteAtual.nome,
+    medico_id:     Number(document.getElementById('medico_id').value)||0,
+    medico_nome:   document.getElementById('medico_id').selectedOptions[0]?.text.split(' — ')[0]||'',
+    medico_esp:    document.getElementById('medico_id').selectedOptions[0]?.dataset.esp||'',
+    medico_crm:    document.getElementById('medico_id').selectedOptions[0]?.dataset.crm||'',
+    tipo:          document.getElementById('tipo_consulta').value,
+    data, hora:    document.getElementById('hora').value,
+    pa:            document.getElementById('pa').value.trim(),
+    fc:            document.getElementById('fc').value.trim(),
+    temperatura:   document.getElementById('temperatura').value.trim(),
+    saturacao:     document.getElementById('saturacao').value.trim(),
+    peso:          document.getElementById('peso').value.trim(),
+    altura:        document.getElementById('altura').value.trim(),
+    anamnese:      document.getElementById('anamnese').value.trim(),
+    cid:           document.getElementById('cid').value.trim(),
+    diagnostico:   document.getElementById('diagnostico').value.trim(),
+    conduta:       document.getElementById('conduta').value.trim()
+  }
+  if (editandoId) { atualizarProntuario({...d,id:editandoId}); aviso('ok','Consulta atualizada!'); cancelar() }
+  else            { inserirProntuario(d); aviso('ok',`${d.tipo} registrada com sucesso!`); cancelar() }
+}
+
+function cancelar() {
+  editandoId = null
+  document.getElementById('btnCancelar').style.display = 'none'
+  document.getElementById('btnSalvar').textContent = '💾 Salvar Consulta'
+  document.getElementById('consultaTitulo').textContent = 'Nova Consulta'
+  ;['pa','fc','temperatura','saturacao','peso','altura','anamnese','cid','diagnostico','conduta'].forEach(i=>{
+    const el=document.getElementById(i); if(el) el.value=''
+  })
+  document.getElementById('tipo_consulta').value = 'Consulta'
+  document.getElementById('data').value = new Date().toISOString().split('T')[0]
+  document.getElementById('hora').value = new Date().toTimeString().slice(0,5)
+}
+
+// ── HISTÓRICO ───────────────────────────────────────────────
+function imprimirConsulta(id) {
+  const p = getProntuario(id); if(!p) return
+  const cfg      = getConfig
+  const clinica  = cfg('clinica_nome','Clínica')
+  const logoData  = cfg('logo_data','')
+  const usarLogo  = document.getElementById('pdfComLogo')?.checked !== false
+  const logoBloco = (logoData && usarLogo) ? `<div style="text-align:center;margin-bottom:10px"><img src="${logoData}" style="max-height:72px;display:block;margin:0 auto"></div>` : ''
+  
+  let sinaisVitais = ''
+  if (p.pa||p.fc||p.temperatura||p.saturacao||p.peso||p.altura) {
+    sinaisVitais = '<h3>Sinais Vitais</h3><p>'
+    if (p.pa)          sinaisVitais += `PA: ${p.pa} | `
+    if (p.fc)          sinaisVitais += `FC: ${p.fc} bpm | `
+    if (p.temperatura) sinaisVitais += `Temp: ${p.temperatura}°C | `
+    if (p.saturacao)   sinaisVitais += `SpO₂: ${p.saturacao}% | `
+    if (p.peso)        sinaisVitais += `Peso: ${p.peso}kg | `
+    if (p.altura)      sinaisVitais += `Altura: ${p.altura}cm`
+    sinaisVitais += '</p>'
+  }
+
+  const dataFmt = p.data ? p.data.split('-').reverse().join('/') : ''
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>
+      body{font-family:Arial,sans-serif;padding:20mm;color:#000;max-width:700px;margin:0 auto}
+      .header{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:16px}
+      h1{font-size:16px;text-transform:uppercase;margin:4px 0}
+      h2{font-size:14px;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}
+      h3{font-size:12px;text-transform:uppercase;color:#555;margin:12px 0 4px}
+      p{font-size:12px;margin:4px 0;line-height:1.6}
+      .info{font-size:11px;color:#555;margin:2px 0}
+      .corpo{white-space:pre-wrap;font-size:13px;line-height:1.8;background:#f9f9f9;padding:10px;border:1px solid #ddd;border-radius:4px}
+      .footer{margin-top:50px;text-align:right;font-size:11px;border-top:1px solid #000;padding-top:6px}
+      .rodape{font-size:9px;text-align:center;margin-top:20px;color:#777;border-top:1px dotted #ccc;padding-top:4px}
+      @media print{button{display:none}}
+    </style></head><body>
+    <div class="header">
+      ${logoBloco}
+      <h1>${clinica}</h1>
+      <div class="info">${cfg('clinica_endereco','')} ${cfg('clinica_telefone','')?'| Tel: '+cfg('clinica_telefone',''):''}</div>
+    </div>
+    <h2>${p.tipo||'Consulta'} — ${p.paciente_nome||''}</h2>
+    <p><strong>Data:</strong> ${dataFmt} ${p.hora?'às '+p.hora:''}</p>
+    <p><strong>Médico:</strong> ${p.medico_nome||''}</p>
+    ${p.cid||p.diagnostico ? `<p><strong>Diagnóstico:</strong> ${p.cid?'CID '+p.cid+' — ':''} ${p.diagnostico||''}</p>` : ''}
+    ${sinaisVitais}
+    ${p.anamnese ? `<h3>Anamnese / Evolução</h3><div class="corpo">${p.anamnese}</div>` : ''}
+    ${p.conduta ? `<h3>Conduta / Plano Terapêutico</h3><div class="corpo">${p.conduta}</div>` : ''}
+    <div class="footer">
+      ${p.medico_nome||''}<br>
+      ${p.medico_esp||''}<br>
+      Assinatura e Carimbo
+    </div>
+    <div class="rodape">MedCore — GHZ Plugin | Emitido em: ${new Date().toLocaleDateString('pt-BR')}</div>
+  </body></html>`
+
+  const w = window.open('', '_blank')
+  w.document.write(html)
+  w.document.close()
+  setTimeout(() => w.print(), 600)
+}
+
+function renderHistorico() {
+  if (!pacienteAtual) return
+  const lista = listarProntuarios(pacienteAtual.id)
+  document.getElementById('ctHistorico').textContent = lista.length+' consulta(s)'
+  const el = document.getElementById('listaHistorico')
+  el.innerHTML = lista.length ? lista.map(p=>`
+    <div class="consulta-card" onclick="verConsulta(${p.id})">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:22px">${p.tipo==='Retorno'?'🔄':'🩺'}</div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:var(--fg)">${p.tipo||'Consulta'} — ${fmtData(p.data)} ${p.hora?'às '+p.hora:''}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${p.medico_nome||''} ${p.diagnostico?'· '+p.diagnostico:''}</div>
+          ${p.anamnese?`<div style="font-size:12px;color:var(--fg2);margin-top:4px;white-space:pre-line;overflow:hidden;max-height:40px;text-overflow:ellipsis">${p.anamnese.slice(0,120)}${p.anamnese.length>120?'...':''}</div>`:''}
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost" onclick="event.stopPropagation();imprimirConsulta(${p.id})" style="font-size:12px;padding:5px 10px" title="Imprimir PDF">🖨️</button>
+          <button class="btn-edit" onclick="event.stopPropagation();editarConsulta(${p.id})">✏️</button>
+          <button class="btn-danger" onclick="event.stopPropagation();excluirConsulta(${p.id})">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('')
+  : '<div class="empty">Nenhuma consulta registrada ainda.</div>'
+}
+
+function verConsulta(id) {
+  const p = getProntuario(id); if(!p) return
+  consultaAbererId = id
+  document.getElementById('modalConsultaTitulo').textContent = `${p.tipo||'Consulta'} — ${fmtData(p.data)} ${p.hora?'às '+p.hora:''}`
+  let txt = ''
+  if (p.pa||p.fc||p.temperatura||p.saturacao||p.peso||p.altura) {
+    txt += '📊 SINAIS VITAIS\n'
+    if (p.pa)          txt += `PA: ${p.pa}   `
+    if (p.fc)          txt += `FC: ${p.fc} bpm   `
+    if (p.temperatura) txt += `Temp: ${p.temperatura}°C   `
+    if (p.saturacao)   txt += `SpO₂: ${p.saturacao}%   `
+    if (p.peso)        txt += `Peso: ${p.peso}kg   `
+    if (p.altura)      txt += `Altura: ${p.altura}cm`
+    txt += '\n\n'
+  }
+  if (p.anamnese)    txt += '📝 ANAMNESE E EVOLUÇÃO\n'+p.anamnese+'\n\n'
+  if (p.cid||p.diagnostico) txt += `🏥 DIAGNÓSTICO\n${p.cid?'CID: '+p.cid+'   ':''}${p.diagnostico||''}\n\n`
+  if (p.conduta)     txt += '💊 CONDUTA\n'+p.conduta
+  document.getElementById('modalConsultaConteudo').textContent = txt.trim()
+  document.getElementById('modalConsulta').style.display = 'flex'
+}
+
+function editarConsultaAberta() {
+  if (!consultaAbererId) return
+  document.getElementById('modalConsulta').style.display='none'
+  editarConsulta(consultaAbererId)
+  setAba('consulta')
+}
+
+function editarConsulta(id) {
+  const p = getProntuario(id); if(!p) return
+  document.getElementById('data').value         = p.data||''
+  document.getElementById('hora').value         = p.hora||''
+  document.getElementById('tipo_consulta').value= p.tipo||'Consulta'
+  document.getElementById('medico_id').value    = p.medico_id||''
+  document.getElementById('pa').value           = p.pa||''
+  document.getElementById('fc').value           = p.fc||''
+  document.getElementById('temperatura').value  = p.temperatura||''
+  document.getElementById('saturacao').value    = p.saturacao||''
+  document.getElementById('peso').value         = p.peso||''
+  document.getElementById('altura').value       = p.altura||''
+  document.getElementById('anamnese').value     = p.anamnese||''
+  document.getElementById('cid').value          = p.cid||''
+  document.getElementById('diagnostico').value  = p.diagnostico||''
+  document.getElementById('conduta').value      = p.conduta||''
+  editandoId = id
+  atualizarTipoConsulta()
+  document.getElementById('btnCancelar').style.display = 'inline-flex'
+  document.getElementById('btnSalvar').textContent = '💾 Salvar Alteração'
+  setAba('consulta')
+  window.scrollTo({top:0,behavior:'smooth'})
+}
+
+function excluirConsulta(id) {
+  confirmar('Excluir este registro?', ok => { if(ok){ deletarProntuario(id); renderHistorico() } })
+}
+
+// ── EXAMES ──────────────────────────────────────────────────
+function renderExamesBanco() {
+  const busca  = document.getElementById('buscaExame').value
+  const lista  = listarExames(busca)
+  const el     = document.getElementById('listaExamesBanco')
+  el.innerHTML = lista.length ? lista.map(e=>`
+    <div class="exame-item" onclick="addExameSel(${e.id},'${e.nome.replace(/'/g,"&#39;")}','${(e.instrucoes||'').replace(/'/g,"&#39;")}')">
+      <span>🔬</span>
+      <div style="flex:1"><div style="font-weight:600">${e.nome}</div><div style="font-size:11px;color:var(--muted)">${e.categoria||''} ${e.instrucoes?'· '+e.instrucoes:''}</div></div>
+      <span style="font-size:18px;color:var(--primary)">+</span>
+    </div>`).join('')
+  : `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">${busca?'Nenhum exame encontrado.':'Cadastre exames em Banco de Exames primeiro.'}</div>`
+}
+function filtrarExamesBanco() { renderExamesBanco() }
+
+function addExameSel(id, nome, instrucoes) {
+  if (examesSel.find(e=>e.id===id)) return
+  examesSel.push({id,nome,instrucoes})
+  renderExamesSel()
+}
+function remExameSel(id) { examesSel = examesSel.filter(e=>e.id!==id); renderExamesSel() }
+function renderExamesSel() {
+  const el = document.getElementById('examesSelecionados')
+  if (!examesSel.length) { el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px">Clique nos exames acima para adicionar</div>'; return }
+  el.innerHTML = '<div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Exames Selecionados:</div>'
+    + examesSel.map(e=>`<div class="exame-sel"><span>✅ ${e.nome}</span><button onclick="remExameSel(${e.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:0">✕</button></div>`).join('')
+}
+
+async function salvarSolicitacao() {
+  if (!pacienteAtual) return
+  if (!examesSel.length) { avisoModal('Selecione pelo menos um exame.'); return }
+  try {
+    const data = document.getElementById('dataExame').value || new Date().toISOString().split('T')[0]
+    // Capturar médico selecionado
+    const medSel = document.getElementById('medicoExame')
+    const medicoNome = medSel?.selectedOptions[0]?.dataset?.nome || ''
+    const d = {
+      paciente_id:   Number(pacienteAtual.id),
+      paciente_nome: pacienteAtual.nome,
+      medico_nome:   medicoNome,
+      data,
+      exames: examesSel.map(e => ({ id: e.id, nome: e.nome, instrucoes: e.instrucoes || '' })),
+      obs:    document.getElementById('obsExame').value.trim()
+    }
+    inserirSolicitacao(d)
+    const el = document.getElementById('avisoOkExame')
+    if (el) { el.textContent = '✅ Solicitação salva!'; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 3200) }
+    examesSel = []
+    renderExamesSel()
+    document.getElementById('obsExame').value = ''
+    renderHistoricoSolicitacoes()
+  } catch(e) {
+    avisoModal('Erro ao salvar solicitação: ' + e.message)
+  }
+}
+
+async function imprimirSolicitacao() {
+  if (!pacienteAtual||!examesSel.length) { avisoModal('Adicione exames antes de imprimir.'); return }
+  const cfg       = getConfig
+  const nomeClinica = cfg('clinica_nome','Clínica')
+  const logoData    = cfg('logo_data','')
+  const usarLogoSol = document.getElementById('solComLogo')?.checked !== false
+  const data        = document.getElementById('dataExame').value || new Date().toISOString().split('T')[0]
+  const dataFmt     = data.split('-').reverse().join('/')
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>body{font-family:Arial,sans-serif;padding:30px;max-width:700px;margin:0 auto}
+    h3{margin:20px 0 10px;font-size:15px;border-bottom:1px solid #ccc;padding-bottom:5px}
+    .exame{padding:7px 0;border-bottom:1px solid #eee;font-size:14px}
+    .header{border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:18px}
+    @media print{button{display:none}}</style></head><body>
+    <div class="header">
+      ${logoData&&usarLogoSol?`<div style='text-align:center;margin-bottom:10px'><img src='${logoData}' style='max-height:72px;display:block;margin:0 auto'></div>`:''}
+      <b style="font-size:16px">${nomeClinica}</b><br>
+      <small>${cfg('clinica_endereco','')} ${cfg('clinica_telefone','')?'· Tel: '+cfg('clinica_telefone',''):''}</small>
+    </div>
+    <h2 style="text-align:center;font-size:16px;margin-bottom:20px">SOLICITAÇÃO DE EXAMES</h2>
+    <p><b>Paciente:</b> ${pacienteAtual.nome}</p>
+    <p><b>Data:</b> ${dataFmt}</p>
+    <h3>Exames Solicitados:</h3>
+    ${examesSel.map(e=>`<div class="exame">☐ ${e.nome}${e.instrucoes?'<br><small style="color:#666">'+e.instrucoes+'</small>':''}</div>`).join('')}
+    ${document.getElementById('obsExame').value?`<h3>Observações:</h3><p style="font-size:13px">${document.getElementById('obsExame').value}</p>`:''}
+    <div style="margin-top:60px;text-align:center;font-size:13px">
+      ___________________________________<br>
+      ${cfg('rt_nome','')?cfg('rt_nome','')+'<br>':''}
+      ${cfg('rt_especialidade','')?cfg('rt_especialidade','')+'<br>':''}
+      ${cfg('rt_crm','')?'CRM: '+cfg('rt_crm',''):''}
+    </div>
+    </body></html>`
+  const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(),500)
+}
+
+function renderHistoricoSolicitacoes() {
+  if (!pacienteAtual) return
+  const lista = listarSolicitacoes(pacienteAtual.id)
+  const el    = document.getElementById('historicoSolicitacoes')
+  el.innerHTML = lista.length ? lista.map(s=>`
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+      <div style="font-weight:700;color:var(--fg)">${fmtData(s.data)}</div>
+      <div style="font-size:12px;color:var(--fg2);margin-top:3px">${s.exames?.join(', ')}</div>
+      ${s.obs?`<div style="font-size:11px;color:var(--muted)">${s.obs}</div>`:''}
+    </div>`).join('')
+  : '<div class="empty">Nenhuma solicitação anterior.</div>'
+}
+
+renderExamesSel()
+</script>
+</body></html>

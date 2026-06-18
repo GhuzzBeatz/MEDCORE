@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header"><div><div class="page-title">📄 Emitir ASO</div><div class="page-sub">Atestado de Saúde Ocupacional — conforme NR-07 (PCMSO)</div></div></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <!-- COLUNA ESQUERDA: FORMULÁRIO -->
+    <div>
+      <div class="form-card">
+        <div class="form-card-title">1. Dados da Empresa</div>
+        <div class="form-row">
+          <div class="form-group fg2"><label class="form-label">Empresa (Razão Social)</label><input id="empresa" placeholder="Nome da empresa contratante"></div>
+          <div class="form-group fg1"><label class="form-label">CNPJ</label><input id="cnpj_empresa" placeholder="00.000.000/0000-00"></div>
+        </div>
+        <div class="form-row" style="margin-top:8px">
+          <div class="form-group fg2"><label class="form-label">Função do Trabalhador</label><input id="funcao" placeholder="Ex: Auxiliar Administrativo"></div>
+          <div class="form-group fg1"><label class="form-label">Tipo de ASO</label>
+            <select id="tipo_aso"><option>Admissional</option><option>Periódico</option><option>Demissional</option><option>Mudança de Função</option><option>Retorno ao Trabalho</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">2. Dados do Trabalhador</div>
+        <div class="form-row">
+          <div class="form-group fg3">
+            <label class="form-label">Paciente (buscar ou digitar nome)</label>
+            <div class="ac-wrap" id="acWrap">
+              <input id="pacBusca" placeholder="Buscar paciente cadastrado..." oninput="filtrarPac()" autocomplete="off">
+              <div class="ac-list" id="acPac"></div>
+              <input type="hidden" id="pacId">
+            </div>
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:8px">
+          <div class="form-group fg1"><label class="form-label">Data Nascimento</label><input type="date" id="nascimento"></div>
+          <div class="form-group fg1"><label class="form-label">CPF</label><input id="cpf" placeholder="000.000.000-00"></div>
+          <div class="form-group fg1"><label class="form-label">RG</label><input id="rg" placeholder="00.000.000-0"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">3. Médico Responsável</div>
+        <div class="form-row">
+          <div class="form-group" style="flex:1"><label class="form-label">Médico</label><select id="medicoAso"></select></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">4. Riscos Ocupacionais</div>
+        <div class="grid-riscos">
+          <div>
+            <span class="titulo-risco">Físicos</span>
+            <label class="chk-label"><input type="checkbox" value="Ruído" class="chk-risco"> Ruído</label>
+            <label class="chk-label"><input type="checkbox" value="Calor" class="chk-risco"> Calor</label>
+            <label class="chk-label"><input type="checkbox" value="Vibração" class="chk-risco"> Vibração</label>
+            <label class="chk-label"><input type="checkbox" value="Radiação" class="chk-risco"> Radiação</label>
+            <label class="chk-label"><input type="checkbox" value="Umidade" class="chk-risco"> Umidade</label>
+          </div>
+          <div>
+            <span class="titulo-risco">Químicos</span>
+            <label class="chk-label"><input type="checkbox" value="Poeira" class="chk-risco"> Poeira</label>
+            <label class="chk-label"><input type="checkbox" value="Fumos Metálicos" class="chk-risco"> Fumos Met.</label>
+            <label class="chk-label"><input type="checkbox" value="Solventes" class="chk-risco"> Solventes</label>
+            <label class="chk-label"><input type="checkbox" value="Ácidos" class="chk-risco"> Ácidos</label>
+            <label class="chk-label"><input type="checkbox" value="Prod. Limpeza" class="chk-risco"> Prod. Limpeza</label>
+          </div>
+          <div>
+            <span class="titulo-risco">Biológicos</span>
+            <label class="chk-label"><input type="checkbox" value="Vírus/Bactérias" class="chk-risco"> Vírus/Bact.</label>
+            <label class="chk-label"><input type="checkbox" value="Fungos" class="chk-risco"> Fungos</label>
+            <label class="chk-label"><input type="checkbox" value="Mat. Infectante" class="chk-risco"> Mat. Infectante</label>
+          </div>
+          <div>
+            <span class="titulo-risco">Ergon/Acidente</span>
+            <label class="chk-label"><input type="checkbox" value="Esforço Físico" class="chk-risco"> Esforço Físico</label>
+            <label class="chk-label"><input type="checkbox" value="Postura Inadequada" class="chk-risco"> Postura</label>
+            <label class="chk-label"><input type="checkbox" value="Trabalho em Altura" class="chk-risco"> Trab. Altura</label>
+            <label class="chk-label"><input type="checkbox" value="Ausência de Riscos" class="chk-risco" checked><b>Ausência de Riscos</b></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">5. Exames Complementares</div>
+        <div class="box-exames" id="listaExames"></div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" onclick="gerarASO()" style="flex:1;padding:13px">🖨️ Gerar PDF do ASO</button>
+        <button class="btn btn-ghost" onclick="salvarNoHistorico()">💾 Salvar</button>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted);background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;white-space:nowrap">
+          <input type="checkbox" id="asoComLogo" checked style="width:14px;height:14px;cursor:pointer;accent-color:var(--primary)">
+          🖼️ Logo
+        </label>
+      </div>
+      <div class="aviso av-erro" id="avisoErro" style="margin-top:10px"></div>
+      <div class="aviso av-ok"   id="avisoOk"   style="margin-top:10px"></div>
+    </div>
+
+    <!-- COLUNA DIREITA: HISTÓRICO -->
+    <div>
+      <div class="tbl-wrap">
+        <div class="tbl-top">
+          <span class="tbl-title">📋 Histórico de ASOs Emitidos</span>
+          <input class="search-box" id="buscaAso" placeholder="🔍 Paciente ou empresa..." oninput="renderAsos()" style="width:190px">
+        </div>
+        <table>
+          <thead><tr><th>Data</th><th>Trabalhador</th><th>Empresa</th><th>Tipo</th><th style="text-align:center">Ações</th></tr></thead>
+          <tbody id="tbAsos"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+aplicarTemaAtual()
+const { listarPacientes, getPaciente, listarMedicos, listarAsos, inserirAso, deletarAso, getConfig } = require('../js/db.js')
+const { ipcRenderer } = require('electron')
+
+// AUTOCOMPLETE
+function filtrarPac() {
+  const busca = document.getElementById('pacBusca').value.toLowerCase().trim()
+  document.getElementById('pacId').value=''
+  const list  = document.getElementById('acPac')
+  if (!busca) { list.style.display='none'; return }
+  const pac = listarPacientes(busca).slice(0,7)
+  list.innerHTML = pac.map(p=>`<div class="ac-item" onmousedown="selPac(${p.id},'${p.nome.replace(/'/g,"&#39;")}')">${p.nome}<small>${p.cpf||''}</small></div>`).join('')
+  list.style.display = pac.length ? 'block' : 'none'
+}
+function selPac(id,nome) {
+  const p = getPaciente(id); if(!p) return
+  document.getElementById('pacBusca').value   = nome
+  document.getElementById('pacId').value      = id
+  document.getElementById('nascimento').value = p.nascimento||''
+  document.getElementById('cpf').value        = p.cpf||''
+  document.getElementById('rg').value         = p.rg||''
+  document.getElementById('acPac').style.display='none'
+}
+document.addEventListener('click',e=>{ if(!document.getElementById('acWrap')?.contains(e.target)) document.getElementById('acPac').style.display='none' })
+
+// MÉDICOS
+function carregarMedicos() {
+  const el = document.getElementById('medicoAso')
+  el.innerHTML = '<option value="">— sem médico —</option>'
+  listarMedicos(true).forEach(m=>el.innerHTML+=`<option value="${m.id}" data-nome="${m.nome}" data-crm="${m.crm||''}" data-esp="${m.especialidade||''}">${m.nome}${m.crm?' — '+m.crm:''}</option>`)
+  el.innerHTML += '<option value="outro" data-nome="Outro profissional" data-crm="">Outro profissional</option>'
+}
+
+// EXAMES
+const bancoExames = {
+  "Exames Clínicos":["Exame clínico admissional","Anamnese ocupacional","Avaliação de sinais vitais","Avaliação postural","Avaliação osteomuscular","Avaliação respiratória","Avaliação cardiovascular","Avaliação neurológica"],
+  "Exames de Sangue":["Hemograma completo","Glicemia em jejum","Hemoglobina glicada","Colesterol total","HDL","LDL","Triglicerídeos","TGO (AST)","TGP (ALT)","Gama GT","Creatinina","Ureia","TSH","T4 livre","Sorologia Hepatite B","Sorologia Hepatite C","HIV","VDRL"],
+  "Urina e Fezes":["Urina tipo 1 (EAS)","Urocultura","Exame toxicológico de urina","Exame toxicológico larga janela","Parasitológico de fezes"],
+  "Respiratórios":["Espirometria","Raio-X de tórax","Oximetria","Prova broncodilatadora"],
+  "Auditivos":["Audiometria tonal","Audiometria vocal","Imitanciometria","Emissões otoacústicas"],
+  "Visão":["Acuidade visual","Teste de Ishihara","Campimetria","Tonometria","Fundo de olho"],
+  "Cardiológicos":["Eletrocardiograma (ECG)","Teste ergométrico","Ecocardiograma","Holter 24h"],
+  "Psicológicos":["Avaliação psicológica ocupacional","Teste de atenção concentrada","Teste psicotécnico motorista","Avaliação psicossocial"],
+  "Ortopédicos":["Raio-X de coluna","Raio-X de membros superiores","Avaliação de mobilidade articular","Dinamometria"],
+  "NRs Específicas":["Trabalho em altura (NR-35)","Espaço confinado (NR-33)","Eletricista (NR-10)","Operador de máquina pesada","Hospital (exposição biológica)"]
+}
+
+function carregarExames() {
+  const c = document.getElementById('listaExames'); c.innerHTML=''
+  for(const [cat,exs] of Object.entries(bancoExames)){
+    const t=document.createElement('div'); t.className='cat-exame-titulo'; t.textContent=cat; c.appendChild(t)
+    const g=document.createElement('div'); g.className='exame-grid-container'
+    exs.forEach(ex=>{ const l=document.createElement('label'); l.className='item-exame'; l.innerHTML=`<input type="checkbox" value="${ex}" class="chk-exame"> ${ex}`; g.appendChild(l) })
+    c.appendChild(g)
+  }
+}
+
+function salvarNoHistorico() {
+  const nome  = document.getElementById('pacBusca').value.trim()
+  const medSel= document.getElementById('medicoAso')
+  if (!nome) return aviso('erro','Informe o trabalhador.')
+  const riscos = [...document.querySelectorAll('.chk-risco:checked')].map(c=>c.value).join(', ')||'Ausência de Riscos'
+  const exames = [...document.querySelectorAll('.chk-exame:checked')].map(c=>c.value).join(', ')
+  inserirAso({ paciente_id:Number(document.getElementById('pacId').value)||null, paciente_nome:nome, empresa:document.getElementById('empresa').value.trim(), cnpj_empresa:document.getElementById('cnpj_empresa').value.trim(), funcao:document.getElementById('funcao').value.trim(), tipo:document.getElementById('tipo_aso').value, cpf:document.getElementById('cpf').value.trim(), rg:document.getElementById('rg').value.trim(), nascimento:document.getElementById('nascimento').value, riscos, exames, medico_id:medSel.value||null, medico_nome:medSel.selectedOptions[0]?.dataset.nome||'', data:dataHoje() })
+  aviso('ok','ASO salvo no histórico!'); renderAsos()
+}
+
+async function gerarASO() {
+  const nome  = document.getElementById('pacBusca').value.trim()
+  const empresa = document.getElementById('empresa').value.trim()
+  if (!nome)    return aviso('erro','Informe o trabalhador.')
+  if (!empresa) return aviso('erro','Informe a empresa.')
+
+  const clinicaNome = getConfig('clinica_nome','SUA CLÍNICA DE MEDICINA OCUPACIONAL')
+  const clinicaCnpj = getConfig('clinica_cnpj','')
+  const clinicaEnd  = getConfig('clinica_endereco','Endereço da clínica')
+  const logoData    = getConfig('logo_data','')
+  const logoAtiva   = document.getElementById('asoComLogo')?.checked !== false
+  const logoBloco   = (logoData && logoAtiva) ? `<div style="text-align:center;margin-bottom:10px"><img src="${logoData}" style="max-height:72px;display:block;margin:0 auto"></div>` : ''
+  const medSel      = document.getElementById('medicoAso')
+  const mOpt = medSel.selectedOptions[0]
+  const medicoNome = mOpt?.dataset.nome || 'Médico Examinador'
+  const medicoEsp  = mOpt?.dataset.esp  || ''
+  const medicoCrm  = mOpt?.dataset.crm  || ''
+  const medicoTxt  = medicoNome + (medicoEsp ? '<br>'+medicoEsp : '') + (medicoCrm ? '<br>CRM: '+medicoCrm : '')
+
+  let nasc = document.getElementById('nascimento').value
+  let nascFmt = '—'
+  if (nasc) {
+    const p = nasc.split('-'); nascFmt = `${p[2]}/${p[1]}/${p[0]}`
+    const d = new Date(nasc), h = new Date()
+    let a = h.getFullYear()-d.getFullYear()
+    if (h.getMonth()<d.getMonth()||(h.getMonth()===d.getMonth()&&h.getDate()<d.getDate())) a--
+    nascFmt += ` (${a} anos)`
+  }
+
+  const riscos = [...document.querySelectorAll('.chk-risco:checked')].map(c=>c.value).join(', ')||'Ausência de Riscos Ocupacionais'
+  let exLi = '<li>Avaliação Clínica (Anamnese e Exame Físico)</li>'
+  document.querySelectorAll('.chk-exame:checked').forEach(c=>{ exLi+=`<li>${c.value}</li>` })
+  const hoje = new Date().toLocaleDateString('pt-BR')
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;padding:18mm;color:#000;background:#fff}.h{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}.h h1{font-size:17px;text-transform:uppercase;margin-bottom:3px}.h .sub{font-size:11px;color:#333}.h h2{font-size:14px;margin-top:12px;text-decoration:underline}.h .nr{font-size:10px;color:#555}.s{border:1px solid #000;padding:8px 10px;margin-bottom:9px}.s h4{font-size:11px;text-transform:uppercase;background:#eee;padding:3px 5px;margin:-8px -10px 7px -10px;border-bottom:1px solid #000}.f{font-size:11.5px;margin-bottom:4px}.t{font-size:13px;font-weight:bold;text-align:center;padding:5px}.ul{font-size:11px;padding-left:20px;margin:3px 0;line-height:1.7}.c{display:flex;justify-content:space-around;padding:10px;font-size:13px}.ft{margin-top:46px;display:flex;justify-content:space-between;text-align:center;font-size:11px}.a{border-top:1px solid #000;width:42%;padding-top:4px}.rd{font-size:10px;text-align:center;margin-top:24px;border-top:1px dotted #999;padding-top:4px;color:#555}</style></head><body>
+<div class="h">${logoBloco}<h1>${clinicaNome}</h1><div class="sub">CNPJ: ${clinicaCnpj} | ${clinicaEnd}</div><h2>ATESTADO DE SAÚDE OCUPACIONAL — ASO</h2><div class="nr">Conforme NR-07 (PCMSO)</div></div>
+<div class="s"><h4>Identificação do Trabalhador</h4><div class="f"><b>Nome:</b> ${nome.toUpperCase()}</div><div class="f"><b>CPF:</b> ${document.getElementById('cpf').value||'—'} &nbsp;|&nbsp; <b>RG:</b> ${document.getElementById('rg').value||'—'} &nbsp;|&nbsp; <b>Nasc.:</b> ${nascFmt}</div><div class="f"><b>Função:</b> ${(document.getElementById('funcao').value||'—').toUpperCase()}</div><div class="f"><b>Empresa:</b> ${empresa.toUpperCase()} &nbsp;|&nbsp; <b>CNPJ:</b> ${document.getElementById('cnpj_empresa').value||'—'}</div></div>
+<div class="s"><h4>Tipo de Exame Médico</h4><div class="t">${document.getElementById('tipo_aso').value.toUpperCase()}</div></div>
+<div class="s"><h4>Riscos Ocupacionais Identificados</h4><div class="f" style="padding:3px">${riscos}</div></div>
+<div class="s"><h4>Exames Complementares Realizados</h4><div style="font-size:10px;color:#555;margin-bottom:3px">(Datas conforme prontuário médico)</div><ul class="ul">${exLi}</ul></div>
+<div class="s"><h4>Conclusão Médica</h4><div class="c"><div>( &nbsp; ) <b>APTO</b> PARA A FUNÇÃO</div><div>( &nbsp; ) <b>INAPTO</b> PARA A FUNÇÃO</div></div></div>
+<div class="ft"><div class="a"><br>Assinatura do Trabalhador</div><div class="a">${medicoTxt}<br>Carimbo e Assinatura</div></div>
+<div class="rd">Emitido em: ${hoje} | MedCore — GHZ Plugin</div>
+</body></html>`
+
+  const nomeArq = `ASO_${nome.replace(/\s+/g,'_')}_${dataHoje()}.pdf`
+  const btn = document.querySelector('[onclick="gerarASO()"]')
+  btn.disabled=true; btn.textContent='⏳ Gerando...'
+  try {
+    const r = await ipcRenderer.invoke('salvar-pdf',{htmlContent:html,nomeArquivo:nomeArq})
+    if (r.sucesso) { aviso('ok',`PDF salvo: ${r.caminho}`); salvarNoHistorico() }
+    else if (r.motivo!=='cancelado') aviso('erro','Erro ao gerar PDF.')
+  } catch(e) { aviso('erro','Erro: '+e.message) }
+  finally { btn.disabled=false; btn.textContent='🖨️ Gerar PDF do ASO' }
+}
+
+function renderAsos() {
+  const busca = document.getElementById('buscaAso')?.value||''
+  const lista = listarAsos(busca)
+  document.getElementById('tbAsos').innerHTML = lista.length ? lista.map(a=>`
+    <tr>
+      <td style="font-size:12px">${a.data?fmtData(a.data):'—'}</td>
+      <td><b style="color:var(--fg);font-size:12px">${a.paciente_nome}</b></td>
+      <td style="font-size:12px;color:var(--muted)">${a.empresa||'—'}</td>
+      <td><span class="badge b-teal" style="font-size:10px">${a.tipo||'—'}</span></td>
+      <td style="text-align:center">
+        <button class="btn-danger" onclick="deletarAso(${a.id});renderAsos()" title="Excluir">🗑️</button>
+      </td>
+    </tr>`).join('')
+  : '<tr><td colspan="5" class="empty">Nenhum ASO emitido.</td></tr>'
+}
+
+carregarMedicos(); carregarExames(); renderAsos()
+</script>
+</body></html>

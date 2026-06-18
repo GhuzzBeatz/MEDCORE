@@ -1,0 +1,59 @@
+{
+  "name": "medcore",
+  "version": "1.0.2",
+  "description": "Sistema de Gestao MedCore - Clinicas e Consultorio Medico",
+  "main": "main.js",
+  "author": "GHZ Plugin",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "build32": "electron-builder --win --ia32 --config.win.target=nsis"
+  },
+  "build": {
+    "appId": "com.ghzplugin.medcore",
+    "productName": "MedCore",
+    "directories": {
+      "output": "dist_installer"
+    },
+    "files": [
+      "**/*",
+      "!dist_installer/**",
+      "!node_modules/.cache/**",
+      "!server/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "logo.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MedCore"
+    },
+    "extraResources": [
+      {
+        "from": "data/",
+        "to": "data/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8"
+  }
+}

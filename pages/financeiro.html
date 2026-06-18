@@ -1,0 +1,446 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header">
+    <div><div class="page-title">💰 Financeiro</div><div class="page-sub">Controle de receitas, despesas e fluxo de caixa</div></div>
+    <button class="btn btn-ghost" onclick="exportarExcel()" style="align-self:center">📊 Exportar Excel</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card"><div><div class="kpi-label">Receita do Mês</div><div class="kpi-val sm" id="kpiR" style="color:var(--green)">R$ 0,00</div></div><div class="kpi-icon ki-green">💵</div></div>
+    <div class="kpi-card"><div><div class="kpi-label">Despesas do Mês</div><div class="kpi-val sm" id="kpiD" style="color:var(--red)">R$ 0,00</div></div><div class="kpi-icon ki-red">📉</div></div>
+    <div class="kpi-card"><div><div class="kpi-label">Saldo do Mês</div><div class="kpi-val sm" id="kpiS">R$ 0,00</div></div><div class="kpi-icon ki-purple">💰</div></div>
+    <div class="kpi-card"><div><div class="kpi-label">Total de Lançamentos</div><div class="kpi-val" id="kpiN">0</div></div><div class="kpi-icon ki-blue">📋</div></div>
+  </div>
+
+  <!-- FORM -->
+  <div class="form-card">
+    <div class="form-card-title" id="formTitulo">Novo Lançamento</div>
+    <div class="form-row">
+      <div class="form-group fg1"><label class="form-label">Data *</label><input type="date" id="data"></div>
+      <div class="form-group fg1"><label class="form-label">Tipo *</label>
+        <select id="tipo"><option value="Receita">Receita</option><option value="Despesa">Despesa</option></select>
+      </div>
+      <div class="form-group fg3"><label class="form-label">Descrição *</label><input id="descricao" placeholder="Ex: Consulta particular, Aluguel, Material..."></div>
+      <div class="form-group fg1"><label class="form-label">Valor (R$) *</label><input type="number" id="valor" placeholder="0,00" min="0" step="0.01"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group fg2"><label class="form-label">Forma de Pagamento</label>
+        <select id="forma_pgto"><option>Dinheiro</option><option>PIX</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Transferência</option><option>Convênio</option><option>Outro</option></select>
+      </div>
+      <div class="form-group fg2"><label class="form-label">Local de Atendimento</label>
+        <select id="local_atendimento">
+          <option value="">— Selecione o local —</option>
+        </select>
+      </div>
+      <div class="form-group fg2"><label class="form-label">Convênio</label>
+        <select id="convenio"><option>Particular</option><option>UNIMED</option><option>AMIL</option><option>Bradesco Saúde</option><option>SulAmérica</option><option>SUS</option><option>Outro</option></select>
+      </div>
+      <!-- PACIENTE AUTOCOMPLETE -->
+      <div class="form-group fg2">
+        <label class="form-label">Paciente</label>
+        <div class="ac-wrap" id="acWrapPac">
+          <input id="pacBusca" placeholder="Nome ou CPF do paciente..." oninput="filtrarPac()" autocomplete="off">
+          <div class="ac-list" id="acPac"></div>
+        </div>
+      </div>
+      <div class="form-group fg2"><label class="form-label">Médico</label><select id="medicoFin"></select></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn btn-primary" id="btnSalvar" onclick="salvar()">+ Registrar</button>
+      <button class="btn-cancel" id="btnCancelar" onclick="cancelar()">Cancelar</button>
+    </div>
+    <div class="aviso av-erro" id="avisoErro"></div>
+    <div class="aviso av-ok"   id="avisoOk"></div>
+  </div>
+
+  <!-- FILTROS -->
+  <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
+    <div class="form-group"><label class="form-label">Mês</label><input type="month" id="filtroMes" oninput="render()"></div>
+    <div class="form-group"><label class="form-label">Tipo</label>
+      <select id="filtroTipo" onchange="render()" style="width:130px"><option value="">Todos</option><option value="Receita">Receitas</option><option value="Despesa">Despesas</option></select>
+    </div>
+    <button class="btn btn-ghost" onclick="limparFiltros()">Ver Todos</button>
+    <span style="margin-left:auto;font-size:12px;color:var(--muted);align-self:flex-end" id="count"></span>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Paciente</th><th>Convênio</th><th>Local</th><th>Forma Pgto</th><th style="text-align:right">Valor</th><th style="text-align:center">Ações</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL EDIÇÃO -->
+<div class="modal-ov" id="modalEdit" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Editar Lançamento</div>
+    <input type="hidden" id="editId">
+    <div class="form-row">
+      <div class="form-group fg1"><label class="form-label">Data</label><input type="date" id="editData"></div>
+      <div class="form-group fg1"><label class="form-label">Tipo</label>
+        <select id="editTipo"><option value="Receita">Receita</option><option value="Despesa">Despesa</option></select>
+      </div>
+      <div class="form-group fg3"><label class="form-label">Descrição</label><input id="editDescricao"></div>
+    </div>
+    <div class="form-row" style="margin-top:10px">
+      <div class="form-group fg1"><label class="form-label">Valor (R$)</label><input type="number" id="editValor" step="0.01"></div>
+      <div class="form-group fg2"><label class="form-label">Forma de Pagamento</label>
+        <select id="editForma"><option>Dinheiro</option><option>PIX</option><option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Transferência</option><option>Convênio</option><option>Outro</option></select>
+      </div>
+      <div class="form-group fg2"><label class="form-label">Convênio</label>
+        <select id="editConvenio"><option>Particular</option><option>UNIMED</option><option>AMIL</option><option>Bradesco Saúde</option><option>SulAmérica</option><option>SUS</option><option>Outro</option></select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:10px">
+      <div class="form-group fg2">
+        <label class="form-label">Paciente</label>
+        <div class="ac-wrap" id="acWrapEdit">
+          <input id="editPacBusca" placeholder="Nome ou CPF..." oninput="filtrarPacEdit()" autocomplete="off">
+          <div class="ac-list" id="acPacEdit"></div>
+        </div>
+      </div>
+      <div class="form-group fg2"><label class="form-label">Médico</label><select id="editMedico"></select></div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-ghost" onclick="document.getElementById('modalEdit').style.display='none'">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEdicao()">💾 Salvar Alteração</button>
+    </div>
+  </div>
+</div>
+
+<script>
+aplicarTemaAtual()
+function preencherLocais() {
+  const el = document.getElementById('local_atendimento')
+  if (!el) return
+  const val = el.value
+  el.innerHTML = '<option value="">— Selecione o local —</option>'
+  listarLocais().forEach(l => el.innerHTML += `<option value="${l.nome}">${l.nome}</option>`)
+  if (val) el.value = val
+}
+
+const { listarPacientes, listarMedicos, listarFinanceiro, inserirFinanceiro, atualizarFinanceiro, deletarFinanceiro, listarLocais, getConfig } = require('../js/db.js')
+const { ipcRenderer } = require('electron')
+const fs   = require('fs')
+const path = require('path')
+
+// ── AUTOCOMPLETE PACIENTE (FORM PRINCIPAL) ─────────────────
+function filtrarPac() {
+  const busca = document.getElementById('pacBusca').value.toLowerCase().trim()
+  const list  = document.getElementById('acPac')
+  if (!busca) { list.style.display='none'; return }
+  const pac = listarPacientes(busca).slice(0,7)
+  list.innerHTML = pac.map(p=>`<div class="ac-item" onmousedown="selPac('${p.nome.replace(/'/g,"&#39;")}')">${p.nome}<small>${p.cpf||''} ${p.telefone?'· '+p.telefone:''}</small></div>`).join('')
+  list.style.display = pac.length ? 'block' : 'none'
+}
+function selPac(nome) {
+  document.getElementById('pacBusca').value = nome
+  document.getElementById('acPac').style.display = 'none'
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('acWrapPac')?.contains(e.target)) document.getElementById('acPac').style.display='none'
+  if (!document.getElementById('acWrapEdit')?.contains(e.target)) document.getElementById('acPacEdit').style.display='none'
+})
+
+// ── AUTOCOMPLETE PACIENTE (MODAL EDIÇÃO) ───────────────────
+function filtrarPacEdit() {
+  const busca = document.getElementById('editPacBusca').value.toLowerCase().trim()
+  const list  = document.getElementById('acPacEdit')
+  if (!busca) { list.style.display='none'; return }
+  const pac = listarPacientes(busca).slice(0,7)
+  list.innerHTML = pac.map(p=>`<div class="ac-item" onmousedown="selPacEdit('${p.nome.replace(/'/g,"&#39;")}')">${p.nome}<small>${p.cpf||''}</small></div>`).join('')
+  list.style.display = pac.length ? 'block' : 'none'
+}
+function selPacEdit(nome) {
+  document.getElementById('editPacBusca').value = nome
+  document.getElementById('acPacEdit').style.display = 'none'
+}
+
+// ── CARREGAR MÉDICOS (com Vazio + Outro) ────────────────────
+function carregarMedicos(selId, valNome='') {
+  const el = document.getElementById(selId)
+  el.innerHTML = '<option value="">— sem médico —</option>'
+  listarMedicos(true).forEach(m => el.innerHTML += `<option value="${m.nome}" ${m.nome===valNome?'selected':''}>${m.nome}${m.especialidade?' — '+m.especialidade:''}</option>`)
+  el.innerHTML += '<option value="Outro">Outro profissional</option>'
+}
+
+function escHtml(valor) {
+  return String(valor || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+function gerarNumeroRecibo(lanc) {
+  const dataRef = String(lanc?.data || dataHoje()).replaceAll('-', '')
+  const idRef = String(lanc?.id || '').replace(/\D/g, '').slice(-6).padStart(6, '0')
+  return `RCB-${dataRef}-${idRef}`
+}
+
+function montarHtmlRecibo(lanc) {
+  const clinicaNome = getConfig('clinica_nome', 'Clinica')
+  const clinicaCnpj = getConfig('clinica_cnpj', '')
+  const clinicaEndereco = getConfig('clinica_endereco', '')
+  const clinicaTelefone = getConfig('clinica_telefone', '')
+  const clinicaEmail = getConfig('clinica_email', '')
+  const medicoNome = lanc.medico_nome || getConfig('rt_nome', '')
+
+  return `
+  <!DOCTYPE html>
+  <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <title>Recibo de Pagamento</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 26px; color: #111; }
+      .box { border: 2px solid #111; border-radius: 10px; padding: 20px; }
+      .titulo { font-size: 24px; font-weight: 700; margin-bottom: 14px; letter-spacing: 0.4px; }
+      .sub { font-size: 12px; color: #555; line-height: 1.6; margin-bottom: 16px; }
+      .linha { margin: 10px 0; font-size: 14px; line-height: 1.6; }
+      .valor { font-size: 28px; font-weight: 800; margin: 18px 0 12px; }
+      .rodape { margin-top: 18px; font-size: 12px; color: #444; line-height: 1.7; }
+      .assinatura { margin-top: 42px; display: flex; justify-content: space-between; gap: 18px; }
+      .assinatura > div { width: 46%; border-top: 1px solid #333; padding-top: 6px; font-size: 12px; text-align: center; }
+      @media print { button { display: none; } body { margin: 12mm; } }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div class="titulo">Recibo de Pagamento</div>
+      <div class="sub">
+        <div><b>${escHtml(clinicaNome)}</b></div>
+        ${clinicaCnpj ? `<div>CNPJ: ${escHtml(clinicaCnpj)}</div>` : ''}
+        ${clinicaEndereco ? `<div>${escHtml(clinicaEndereco)}</div>` : ''}
+        <div>${escHtml(clinicaTelefone)} ${clinicaEmail ? ` | ${escHtml(clinicaEmail)}` : ''}</div>
+      </div>
+
+      <div class="linha"><b>Recibo:</b> ${escHtml(gerarNumeroRecibo(lanc))}</div>
+      <div class="linha"><b>Data:</b> ${escHtml(fmtData(lanc.data || dataHoje()))}</div>
+      <div class="linha"><b>Recebemos de:</b> ${escHtml(lanc.paciente_nome || 'Cliente')}</div>
+      <div class="linha"><b>Descricao:</b> ${escHtml(lanc.descricao || 'Pagamento de servico')}</div>
+      <div class="linha"><b>Forma de pagamento:</b> ${escHtml(lanc.forma_pgto || '-')}</div>
+      <div class="linha"><b>Convenio:</b> ${escHtml(lanc.convenio || 'Particular')}</div>
+      <div class="valor">Valor: ${escHtml(fmtMoeda(lanc.valor || 0))}</div>
+      ${medicoNome ? `<div class="linha"><b>Responsavel:</b> ${escHtml(medicoNome)}</div>` : ''}
+
+      <div class="rodape">Documento emitido pelo sistema MedCore em ${new Date().toLocaleString('pt-BR')}.</div>
+
+      <div class="assinatura">
+        <div>Assinatura / carimbo da clinica</div>
+        <div>Assinatura do pagador</div>
+      </div>
+    </div>
+  </body>
+  </html>`
+}
+
+function imprimirRecibo(id) {
+  const lanc = listarFinanceiro().find(x => Number(x.id) === Number(id))
+  if (!lanc) return aviso('erro', 'Lancamento nao encontrado.')
+  if (String(lanc.tipo || '').toLowerCase() !== 'receita') {
+    return aviso('erro', 'Recibo disponivel apenas para receitas.')
+  }
+
+  const html = montarHtmlRecibo(lanc)
+  const w = window.open('', '_blank')
+  if (!w) return aviso('erro', 'Nao foi possivel abrir a janela de impressao.')
+  w.document.write(html)
+  w.document.close()
+  setTimeout(() => w.print(), 450)
+}
+
+function salvarReciboPdf(id) {
+  const lanc = listarFinanceiro().find(x => Number(x.id) === Number(id))
+  if (!lanc) return aviso('erro', 'Lancamento nao encontrado.')
+  const html = montarHtmlRecibo(lanc)
+  const nomeArquivo = `Recibo_${gerarNumeroRecibo(lanc)}.pdf`
+  ipcRenderer.invoke('salvar-pdf', { htmlContent: html, nomeArquivo }).then((res) => {
+    if (res && res.sucesso) aviso('ok', `Recibo salvo em: ${res.caminho}`)
+    else if (res && res.motivo !== 'cancelado') aviso('erro', 'Nao foi possivel salvar o recibo em PDF.')
+  }).catch((err) => aviso('erro', err?.message || String(err)))
+}
+
+// ── SALVAR ─────────────────────────────────────────────────
+function salvar() {
+  const descricao = document.getElementById('descricao').value.trim()
+  const valor     = Number(document.getElementById('valor').value||0)
+  if (!descricao)    return aviso('erro','Informe a descrição.')
+  if (!valor||valor<=0) return aviso('erro','Informe um valor válido.')
+  inserirFinanceiro({
+    data:         document.getElementById('data').value || dataHoje(),
+    tipo:         document.getElementById('tipo').value,
+    descricao,    valor,
+    forma_pgto:   document.getElementById('forma_pgto').value,
+    convenio:     document.getElementById('convenio').value,
+    paciente_nome:document.getElementById('pacBusca').value.trim(),
+    medico_nome:  document.getElementById('medicoFin').value,
+    local:        document.getElementById('local_atendimento')?.value || '',
+    agenda_id:    null
+  })
+  aviso('ok','Lançamento registrado!')
+  document.getElementById('descricao').value = ''
+  document.getElementById('valor').value     = ''
+  document.getElementById('pacBusca').value  = ''
+  render()
+}
+
+function cancelar() {
+  document.getElementById('descricao').value = ''
+  document.getElementById('valor').value     = ''
+  document.getElementById('pacBusca').value  = ''
+}
+
+// ── EDIÇÃO ─────────────────────────────────────────────────
+function abrirEdicao(id) {
+  const lista = listarFinanceiro()
+  const l = lista.find(x => x.id === id)
+  if (!l) return
+  document.getElementById('editId').value         = id
+  document.getElementById('editData').value       = l.data||''
+  document.getElementById('editTipo').value       = l.tipo||'Receita'
+  document.getElementById('editDescricao').value  = l.descricao||''
+  document.getElementById('editValor').value      = l.valor||''
+  document.getElementById('editForma').value      = l.forma_pgto||'Dinheiro'
+  document.getElementById('editConvenio').value   = l.convenio||'Particular'
+  document.getElementById('editPacBusca').value   = l.paciente_nome||''
+  carregarMedicos('editMedico', l.medico_nome||'')
+  document.getElementById('modalEdit').style.display = 'flex'
+}
+
+function salvarEdicao() {
+  const id    = Number(document.getElementById('editId').value)
+  const valor = Number(document.getElementById('editValor').value||0)
+  if (!valor||valor<=0) return avisoModal('Informe um valor válido.')
+  atualizarFinanceiro({
+    id,
+    data:         document.getElementById('editData').value,
+    tipo:         document.getElementById('editTipo').value,
+    descricao:    document.getElementById('editDescricao').value.trim(),
+    valor,
+    forma_pgto:   document.getElementById('editForma').value,
+    convenio:     document.getElementById('editConvenio').value,
+    paciente_nome:document.getElementById('editPacBusca').value.trim(),
+    medico_nome:  document.getElementById('editMedico').value
+  })
+  document.getElementById('modalEdit').style.display = 'none'
+  render()
+}
+
+function excluir(id) { confirmar('Excluir este lançamento? Esta ação não pode ser desfeita.', ok => { if(ok) { deletarFinanceiro(id); render() } }) }
+function limparFiltros() { document.getElementById('filtroMes').value=''; document.getElementById('filtroTipo').value=''; render() }
+
+// ── EXPORTAR EXCEL (CSV UTF-8 BOM) ─────────────────────────
+function exportarExcel() {
+  const filtros = {}
+  const fm = document.getElementById('filtroMes').value
+  const ft = document.getElementById('filtroTipo').value
+  if (fm) filtros.mes  = fm
+  if (ft) filtros.tipo = ft
+  const lista = listarFinanceiro(filtros)
+
+  if (!lista.length) { aviso('erro','Nenhum lançamento para exportar.'); return }
+
+  // Calcular totais
+  let totalRec = 0, totalDes = 0
+  lista.forEach(l => { if(l.tipo==='Receita') totalRec+=Number(l.valor||0); else totalDes+=Number(l.valor||0) })
+
+  const escape = v => `"${String(v||'').replace(/"/g,'""')}"`
+
+  // Cabeçalho
+  let csv = '\uFEFF' // BOM UTF-8 para Excel abrir corretamente
+  csv += 'Data,Tipo,Descrição,Paciente,Convênio,Forma de Pagamento,Médico,Valor (R$)\r\n'
+
+  lista.forEach(l => {
+    csv += [
+      escape(l.data ? fmtData(l.data) : ''),
+      escape(l.tipo),
+      escape(l.descricao),
+      escape(l.paciente_nome||''),
+      escape(l.convenio||''),
+      escape(l.forma_pgto||''),
+      escape(l.medico_nome||''),
+      String(Number(l.valor||0).toFixed(2)).replace('.',',')
+    ].join(',') + '\r\n'
+  })
+
+  // Linha de totais
+  csv += '\r\n'
+  csv += `"RECEITAS TOTAL","","","","","","","${totalRec.toFixed(2).replace('.',',')}"\r\n`
+  csv += `"DESPESAS TOTAL","","","","","","","${totalDes.toFixed(2).replace('.',',')}"\r\n`
+  csv += `"SALDO","","","","","","","${(totalRec-totalDes).toFixed(2).replace('.',',')}"\r\n`
+
+  // Salvar via Electron dialog
+  const nomeArq = `Financeiro_MedCore_${fm||'todos'}.csv`
+
+  // Usa dialog do main process
+  ipcRenderer.invoke('salvar-csv', { conteudo: csv, nomeArquivo: nomeArq }).then(r => {
+    if (r && r.sucesso) aviso('ok', 'Exportado: ' + r.caminho)
+    else if (r && r.motivo !== 'cancelado') aviso('erro','Erro ao exportar.')
+  }).catch(() => {
+    // Fallback: salva direto na pasta Downloads
+    try {
+      const os  = require('os')
+      const dest = path.join(os.homedir(), 'Downloads', nomeArq)
+      fs.writeFileSync(dest, csv, 'utf8')
+      aviso('ok', 'Salvo em: ' + dest)
+    } catch(e) { aviso('erro', 'Erro: ' + e.message) }
+  })
+}
+
+// ── RENDER ─────────────────────────────────────────────────
+function render() {
+  const filtros = {}
+  const fm = document.getElementById('filtroMes').value
+  const ft = document.getElementById('filtroTipo').value
+  if (fm) filtros.mes  = fm
+  if (ft) filtros.tipo = ft
+  const lista = listarFinanceiro(filtros)
+  document.getElementById('count').textContent = lista.length + ' lançamento(s)'
+
+  let rec=0, des=0
+  lista.forEach(l => { if(l.tipo==='Receita') rec+=Number(l.valor||0); else des+=Number(l.valor||0) })
+  document.getElementById('kpiR').textContent = fmtMoeda(rec)
+  document.getElementById('kpiD').textContent = fmtMoeda(des)
+  document.getElementById('kpiN').textContent = lista.length
+  const saldo = rec - des
+  const sEl   = document.getElementById('kpiS')
+  sEl.textContent = fmtMoeda(saldo)
+  sEl.style.color = saldo >= 0 ? 'var(--green)' : 'var(--red)'
+
+  document.getElementById('tbody').innerHTML = lista.length ? lista.map(l => `
+    <tr>
+      <td>${fmtData(l.data)}</td>
+      <td><span class="badge ${l.tipo==='Receita'?'b-green':'b-red'}">${l.tipo}</span></td>
+      <td><b style="color:var(--fg)">${l.descricao}</b></td>
+      <td style="font-size:12px;color:var(--muted)">${l.paciente_nome||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${l.convenio||'Particular'}</td>
+      <td style="font-size:12px;color:var(--muted)">${l.local||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${l.forma_pgto||'—'}</td>
+      <td style="text-align:right;font-weight:700;color:${l.tipo==='Receita'?'var(--green)':'var(--red)'}">${fmtMoeda(l.valor)}</td>
+      <td style="text-align:center;white-space:nowrap">
+        ${l.tipo==='Receita' ? `<button class="btn-edit" onclick="imprimirRecibo(${l.id})" title="Imprimir recibo">Recibo</button><button class="btn-edit" onclick="salvarReciboPdf(${l.id})" title="Salvar recibo em PDF">PDF</button>` : ''}
+        <button class="btn-edit" onclick="abrirEdicao(${l.id})" title="Editar">✏️</button>
+        <button class="btn-danger" onclick="excluir(${l.id})" title="Excluir">🗑️</button>
+      </td>
+    </tr>`).join('')
+  : '<tr><td colspan="9" class="empty">Nenhum lançamento encontrado.</td></tr>'
+}
+
+// INIT
+document.getElementById('data').value = dataHoje()
+const mesHoje = new Date().toISOString().slice(0,7)
+document.getElementById('filtroMes').value = mesHoje
+carregarMedicos('medicoFin')
+preencherLocais()
+render()
+</script>
+</body></html>
+
+
+

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header">
+    <div><div class="page-title">📂 Histórico Geral</div><div class="page-sub">Busque um paciente e veja todo o histórico: consultas, exames, ASOs, receituários e mais</div></div>
+  </div>
+
+  <!-- BUSCA DE PACIENTE -->
+  <div class="form-card" style="margin-bottom:14px">
+    <div class="form-card-title">🔍 Buscar Paciente</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="position:relative;flex:1;min-width:260px">
+        <input id="pacBusca" placeholder="Digite o nome ou CPF do paciente..." oninput="filtrarPac()" autocomplete="off"
+          style="width:100%;padding:11px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--fg);font-size:13.5px;outline:none;font-family:inherit">
+        <div id="acPac" style="position:absolute;top:100%;left:0;right:0;background:var(--card2);border:1px solid var(--primary);border-top:none;border-radius:0 0 10px 10px;z-index:999;max-height:200px;overflow-y:auto;display:none"></div>
+        <input type="hidden" id="pacId">
+      </div>
+      <button class="btn btn-ghost" onclick="limparBusca()">✕ Limpar</button>
+    </div>
+  </div>
+
+  <!-- PAINEL DO PACIENTE -->
+  <div id="pacPanel" style="display:none">
+    <div class="sec-card" style="margin-bottom:14px;background:var(--primary-bg);border-color:var(--primary-bdr)">
+      <div style="padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;flex-shrink:0" id="pacAvatar">?</div>
+        <div style="flex:1">
+          <div style="font-size:17px;font-weight:900;color:var(--fg)" id="pacNomeLabel">—</div>
+          <div style="font-size:12px;color:var(--muted)" id="pacInfoLabel">—</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="background:var(--card2);border-radius:9px;padding:8px 14px;text-align:center">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Consultas</div>
+            <div style="font-size:18px;font-weight:900;color:var(--primary2)" id="cntConsultas">0</div>
+          </div>
+          <div style="background:var(--card2);border-radius:9px;padding:8px 14px;text-align:center">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">ASOs</div>
+            <div style="font-size:18px;font-weight:900;color:var(--green)" id="cntAsos">0</div>
+          </div>
+          <div style="background:var(--card2);border-radius:9px;padding:8px 14px;text-align:center">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Receituários</div>
+            <div style="font-size:18px;font-weight:900;color:var(--blue)" id="cntReceitas">0</div>
+          </div>
+          <div style="background:var(--card2);border-radius:9px;padding:8px 14px;text-align:center">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Solicitações</div>
+            <div style="font-size:18px;font-weight:900;color:var(--orange)" id="cntSolic">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:12px;color:var(--muted);font-weight:700">Filtrar por tipo:</span>
+      <button class="btn btn-primary" onclick="filtrarTipo('todos',this)" id="btn-todos" style="font-size:11px;padding:5px 12px">Todos</button>
+      <button class="btn btn-ghost" onclick="filtrarTipo('Consulta',this)" id="btn-Consulta" style="font-size:11px;padding:5px 12px">Consulta</button>
+      <button class="btn btn-ghost" onclick="filtrarTipo('Retorno',this)" id="btn-Retorno" style="font-size:11px;padding:5px 12px">Retorno</button>
+      <button class="btn btn-ghost" onclick="filtrarTipo('ASO',this)" id="btn-ASO" style="font-size:11px;padding:5px 12px">ASO</button>
+      <button class="btn btn-ghost" onclick="filtrarTipo('Receituário',this)" id="btn-Receituário" style="font-size:11px;padding:5px 12px">Receituário</button>
+      <button class="btn btn-ghost" onclick="filtrarTipo('Solicitação',this)" id="btn-Solicitação" style="font-size:11px;padding:5px 12px">Solicitação de Exames</button>
+      <input type="month" id="filtroMesHist" onchange="renderHistorico()" placeholder="Filtrar mês" style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;color:var(--fg);font-size:12px;font-family:inherit">
+    </div>
+
+    <!-- TIMELINE DE REGISTROS -->
+    <div id="histTimeline"></div>
+  </div>
+
+  <!-- ESTADO VAZIO -->
+  <div id="estadoVazio" style="text-align:center;padding:60px 20px;color:var(--muted)">
+    <div style="font-size:48px;margin-bottom:12px">🔍</div>
+    <div style="font-size:15px;font-weight:700;color:var(--fg2)">Busque um paciente acima</div>
+    <div style="font-size:12px;margin-top:6px">Digite o nome ou CPF para ver todo o histórico de atendimentos</div>
+  </div>
+</div>
+
+<script>
+aplicarTemaAtual()
+const {
+  listarPacientes, getPaciente,
+  listarProntuarios, listarAsos, listarSolicitacoes, listarReceituarios,
+  lerJSON
+} = require('../js/db.js')
+
+let tipoAtivo = 'todos'
+let pacSelecionado = null
+
+// ── AUTOCOMPLETE DE PACIENTES ────────────────────────────────
+function filtrarPac() {
+  const b = document.getElementById('pacBusca').value.toLowerCase().trim()
+  document.getElementById('pacId').value = ''
+  const lista = document.getElementById('acPac')
+  if (!b) { lista.style.display='none'; return }
+  const pacs = listarPacientes(b).slice(0, 10)
+  lista.innerHTML = pacs.map(p => `
+    <div onmousedown="selecionarPac(${p.id},'${p.nome.replace(/'/g,"&#39;")}')"
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;color:var(--fg2)"
+      onmouseover="this.style.background='var(--card)'" onmouseout="this.style.background=''">
+      <b style="color:var(--fg)">${p.nome}</b>
+      <span style="font-size:11px;color:var(--muted);margin-left:6px">CPF: ${p.cpf||'—'} · ${p.data_nascimento?p.data_nascimento.split('-').reverse().join('/'):'—'}</span>
+    </div>`).join('')
+  lista.style.display = pacs.length ? 'block' : 'none'
+}
+
+function selecionarPac(id, nome) {
+  document.getElementById('pacBusca').value = nome
+  document.getElementById('pacId').value = id
+  document.getElementById('acPac').style.display = 'none'
+  carregarHistorico(id)
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#acPac') && e.target.id !== 'pacBusca')
+    document.getElementById('acPac').style.display = 'none'
+})
+
+function limparBusca() {
+  document.getElementById('pacBusca').value = ''
+  document.getElementById('pacId').value = ''
+  document.getElementById('pacPanel').style.display = 'none'
+  document.getElementById('estadoVazio').style.display = 'block'
+  pacSelecionado = null
+}
+
+// ── CARREGAR HISTÓRICO ───────────────────────────────────────
+function carregarHistorico(pacId) {
+  const pac = getPaciente(pacId); if (!pac) return
+  pacSelecionado = pac
+
+  // Mostrar painel
+  document.getElementById('estadoVazio').style.display = 'none'
+  document.getElementById('pacPanel').style.display = 'block'
+
+  // Info do paciente
+  document.getElementById('pacAvatar').textContent = pac.nome[0].toUpperCase()
+  document.getElementById('pacNomeLabel').textContent = pac.nome
+  document.getElementById('pacInfoLabel').textContent = `CPF: ${pac.cpf||'—'} · Nascimento: ${pac.data_nascimento?pac.data_nascimento.split('-').reverse().join('/'):'—'} · ${pac.convenio||'Particular'}`
+
+  renderHistorico()
+}
+
+function filtrarTipo(tipo, btn) {
+  tipoAtivo = tipo
+  document.querySelectorAll('[id^=btn-]').forEach(b => b.className = 'btn btn-ghost')
+  btn.className = 'btn btn-primary'
+  btn.style.fontSize = '11px'; btn.style.padding = '5px 12px'
+  renderHistorico()
+}
+
+function renderHistorico() {
+  if (!pacSelecionado) return
+  const pac = pacSelecionado
+  const filtroMes = document.getElementById('filtroMesHist').value
+
+  // Coletar todos os registros — sempre usar Number para comparação
+  let todos = []
+  const pacId = Number(pac.id)
+
+  // Prontuários (consultas, retornos)
+  const pronts = listarProntuarios(pacId)
+  pronts.forEach(p => todos.push({
+    tipo: p.tipo || 'Consulta',
+    data: p.data, hora: p.hora,
+    medico: p.medico_nome || '',
+    resumo: p.diagnostico ? 'Diagnóstico: ' + p.diagnostico : (p.anamnese?.slice(0,100) || ''),
+    cor: p.tipo === 'Retorno' ? 'b-purple' : 'b-blue',
+    icone: p.tipo === 'Retorno' ? '🔄' : '🩺',
+    id: p.id, fonte: 'prontuario', dados: p
+  }))
+
+  // ASOs — listarAsos retorna todos, filtrar por paciente_id
+  const todosAsos = listarAsos ? listarAsos() : lerJSON('asos')
+  const asos = todosAsos.filter(a => Number(a.paciente_id) === pacId)
+  asos.forEach(a => todos.push({
+    tipo: 'ASO',
+    data: a.data,
+    medico: a.medico_nome || '',
+    resumo: `${a.tipo||'ASO'} · Empresa: ${a.empresa||'—'} · Função: ${a.funcao||'—'}`,
+    cor: 'b-green', icone: '📋',
+    id: a.id, fonte: 'aso', dados: a
+  }))
+
+  // Solicitações de exames
+  const sols = listarSolicitacoes(pacId)
+  sols.forEach(s => todos.push({
+    tipo: 'Solicitação',
+    data: s.data,
+    medico: s.medico_nome || '',
+    resumo: (s.exames||[]).map(e => typeof e === 'string' ? e : (e.nome||'')).join(', ').slice(0,100) || 'Exames solicitados',
+    cor: 'b-orange', icone: '🔬',
+    id: s.id, fonte: 'solicitacao', dados: s
+  }))
+
+  // Receituários salvos
+  const recs = listarReceituarios(pacId)
+  recs.forEach(r => todos.push({
+    tipo: 'Receituário',
+    data: r.data,
+    medico: r.medico_nome || '',
+    resumo: (r.itens||[]).map(i => i.nome||i).join(', ').slice(0,100) || 'Medicamentos prescritos',
+    cor: 'b-blue', icone: '💊',
+    id: r.id, fonte: 'receituario', dados: r
+  }))
+
+  // Atualizar contadores
+  document.getElementById('cntConsultas').textContent = pronts.filter(p => p.tipo !== 'Retorno').length
+  document.getElementById('cntAsos').textContent      = asos.length
+  document.getElementById('cntReceitas').textContent  = recs.length
+  document.getElementById('cntSolic').textContent     = sols.length
+
+  // Filtrar por tipo
+  let filtrados = todos
+  if (tipoAtivo !== 'todos') filtrados = filtrados.filter(r => r.tipo === tipoAtivo)
+
+  // Filtrar por mês
+  if (filtroMes) filtrados = filtrados.filter(r => r.data?.startsWith(filtroMes))
+
+  // Ordenar do mais recente para o mais antigo
+  filtrados.sort((a, b) => (b.data||'') > (a.data||'') ? 1 : -1)
+
+  const box = document.getElementById('histTimeline')
+
+  if (!filtrados.length) {
+    box.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:32px;margin-bottom:10px">📭</div><div style="font-size:13px">Nenhum registro encontrado</div></div>`
+    return
+  }
+
+  // Agrupar por mês/ano
+  const grupos = {}
+  filtrados.forEach(r => {
+    const mes = r.data ? r.data.slice(0,7) : 'sem-data'
+    if (!grupos[mes]) grupos[mes] = []
+    grupos[mes].push(r)
+  })
+
+  box.innerHTML = Object.entries(grupos).sort((a,b) => b[0]>a[0]?1:-1).map(([mes, regs]) => {
+    const [ano, m] = mes.split('-')
+    const mesNome = mes === 'sem-data' ? 'Sem data' : new Date(Number(ano), Number(m)-1).toLocaleString('pt-BR',{month:'long',year:'numeric'}).toUpperCase()
+    return `
+      <div style="margin-bottom:6px;padding:6px 12px;background:var(--bg2);border-radius:8px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">${mesNome} · ${regs.length} registro(s)</div>
+      ${regs.map(r => `
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'" onclick="verDetalhes(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+          <div style="width:38px;height:38px;border-radius:10px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${r.icone}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+              <span class="badge ${r.cor}">${r.tipo}</span>
+              <span style="font-size:12px;color:var(--muted)">${r.data?r.data.split('-').reverse().join('/'):'—'}${r.hora?' às '+r.hora:''}</span>
+              ${r.medico?`<span style="font-size:11px;color:var(--fg2)">· ${r.medico}</span>`:''}
+            </div>
+            ${r.resumo?`<div style="font-size:12px;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.resumo}</div>`:''}
+          </div>
+          <button onclick="event.stopPropagation();imprimirRegistro(${JSON.stringify(r).replace(/"/g,'&quot;')})" style="background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;color:var(--primary2);font-weight:700;white-space:nowrap;font-family:inherit">🖨️</button>
+        </div>`).join('')}`
+  }).join('')
+}
+
+function verDetalhes(r) {
+  // Mostrar modal com detalhes (simplificado)
+  let html = `<div style="font-size:12px;color:var(--fg2);line-height:1.8">`
+  if (r.dados) {
+    const d = r.dados
+    if (r.fonte === 'prontuario') {
+      html += `<p><b>Tipo:</b> ${d.tipo||'Consulta'}</p>`
+      html += `<p><b>Médico:</b> ${d.medico_nome||'—'}</p>`
+      html += `<p><b>Diagnóstico:</b> ${d.diagnostico||'—'}</p>`
+      if (d.anamnese) html += `<p><b>Anamnese:</b><br><span style="white-space:pre-wrap">${d.anamnese}</span></p>`
+      if (d.conduta)  html += `<p><b>Conduta:</b><br><span style="white-space:pre-wrap">${d.conduta}</span></p>`
+    } else if (r.fonte === 'aso') {
+      html += `<p><b>Tipo:</b> ${d.tipo||'—'}</p><p><b>Empresa:</b> ${d.empresa||'—'}</p>`
+      html += `<p><b>Função:</b> ${d.funcao||'—'}</p><p><b>Resultado:</b> ${d.resultado||'—'}</p>`
+    } else if (r.fonte === 'solicitacao') {
+      html += `<p><b>Exames:</b> ${(d.exames||[]).map(e=>e.nome||e).join(', ')||'—'}</p>`
+      if (d.obs) html += `<p><b>Observações:</b> ${d.obs}</p>`
+    } else if (r.fonte === 'receituario') {
+      html += `<p><b>Medicamentos:</b></p><ul style="padding-left:18px;margin-top:4px">${(d.itens||[]).map(i=>`<li>${i.nome||i}${i.posologia?' — '+i.posologia:''}</li>`).join('')}</ul>`
+    }
+  }
+  html += '</div>'
+  confirmar('', () => {}, 'Fechar', '')
+  avisoModal(`<b style="color:var(--fg);font-size:14px">${r.icone} ${r.tipo} — ${r.data?r.data.split('-').reverse().join('/'):'—'}</b><br><br>${html.replace(/<[^>]+>/g, tag => tag)}`)
+}
+
+async function imprimirRegistro(r) {
+  const cfg   = (k) => require('../js/db.js').getConfig(k, '')
+  const logo  = cfg('logo_data')
+  const logoAtiva = cfg('logo_ativa') === '1'
+  const logoBloco = (logo && logoAtiva) ? `<div style="text-align:center;margin-bottom:10px"><img src="${logo}" style="max-height:72px;display:block;margin:0 auto"></div>` : ''
+  const clinica   = cfg('clinica_nome') || 'Clínica'
+  const d = r.dados || {}
+  const dataFmt = r.data ? r.data.split('-').reverse().join('/') : '—'
+
+  let corpo = ''
+  if (r.fonte === 'prontuario') {
+    corpo = `<h3>Tipo: ${d.tipo||'Consulta'}</h3><p><b>Médico:</b> ${d.medico_nome||'—'}${d.medico_esp?'<br>'+d.medico_esp:''}</p>${d.diagnostico?`<p><b>Diagnóstico:</b> ${d.diagnostico}</p>`:''}<p><b>CID:</b> ${d.cid||'—'}</p>${d.anamnese?`<h4>Anamnese / Evolução</h4><p style="white-space:pre-wrap">${d.anamnese}</p>`:''}`
+  } else if (r.fonte === 'aso') {
+    corpo = `<p><b>Tipo ASO:</b> ${d.tipo||'—'}</p><p><b>Empresa:</b> ${d.empresa||'—'}</p><p><b>Função:</b> ${d.funcao||'—'}</p><p><b>Resultado:</b> ${d.resultado||'—'}</p>`
+  } else if (r.fonte === 'solicitacao') {
+    corpo = `<h4>Exames Solicitados</h4><ul>${(d.exames||[]).map(e=>`<li>${e.nome||e}</li>`).join('')}</ul>${d.obs?`<p><b>Obs:</b> ${d.obs}</p>`:''}`
+  } else if (r.fonte === 'receituario') {
+    corpo = `<h4>Medicamentos Prescritos</h4><ul>${(d.itens||[]).map(i=>`<li><b>${i.nome||i}</b>${i.posologia?' — '+i.posologia:''}${i.quantidade?' · '+i.quantidade:''}</li>`).join('')}</ul>`
+  }
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial;padding:18mm;color:#000}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:16px}.hdr h1{font-size:15px;text-transform:uppercase}.titulo{text-align:center;font-size:14px;font-weight:700;border:1.5px solid #333;padding:6px;margin-bottom:14px;letter-spacing:.06em}.info{font-size:12px;margin-bottom:5px}h3,h4{font-size:13px;margin:12px 0 5px;border-bottom:1px solid #eee;padding-bottom:4px}p,li{font-size:12px;line-height:1.7}ul{padding-left:18px;margin:4px 0}.footer{margin-top:50px;text-align:center;border-top:1px solid #000;padding-top:8px;font-size:11px}</style></head><body>
+    <div class="hdr">${logoBloco}<h1>${clinica}</h1></div>
+    <div class="titulo">${r.icone} ${r.tipo.toUpperCase()}</div>
+    <p class="info"><b>Paciente:</b> ${pacSelecionado?.nome||r.dados?.paciente_nome||'—'}</p>
+    <p class="info"><b>Data:</b> ${dataFmt}</p>
+    ${corpo}
+    <div class="footer">${d.medico_nome||''}<br>Assinatura e Carimbo</div>
+  </body></html>`
+
+  const { ipcRenderer } = require('electron')
+  const res = await ipcRenderer.invoke('salvar-pdf', {
+    htmlContent: html,
+    nomeArquivo: `${r.tipo}_${pacSelecionado?.nome?.split(' ')[0]||'Paciente'}_${r.data||dataHoje()}.pdf`
+  })
+  if (res.sucesso) avisoModal('✅ PDF salvo: ' + res.caminho)
+}
+</script>
+</body></html>

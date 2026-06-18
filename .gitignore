@@ -1,0 +1,13 @@
+﻿node_modules/
+dist/
+dist_installer/
+data/*
+!data/.gitkeep
+*.log
+*.exe
+*.msi
+*.zip
+*.blockmap
+Thumbs.db
+.DS_Store
+undefined/

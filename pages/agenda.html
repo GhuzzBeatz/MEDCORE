@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header">
+    <div><div class="page-title">📅 Agenda</div><div class="page-sub">Gerenciamento de consultas e agendamentos</div></div>
+    <button class="btn-teal" onclick="abrirPainelTV()" title="Abrir painel na TV/monitor secundário" style="align-self:center;padding:10px 18px;font-size:13px">
+      📺 Abrir Painel TV
+    </button>
+  </div>
+
+  <!-- FORM -->
+  <div class="form-card">
+    <div class="form-card-title" id="formTitulo">Novo Agendamento</div>
+    <div class="form-row">
+      <div class="form-group fg1"><label class="form-label">Data *</label><input type="date" id="data"></div>
+      <div class="form-group fg1"><label class="form-label">Horário *</label><input type="time" id="hora"></div>
+      <div class="form-group fg2">
+        <label class="form-label">Paciente * (nome ou CPF)</label>
+        <div class="ac-wrap" id="acWrapPac">
+          <input id="pacBusca" placeholder="Buscar paciente..." oninput="filtrarPac()" autocomplete="off">
+          <div class="ac-list" id="acPac"></div>
+          <input type="hidden" id="pacId">
+        </div>
+      </div>
+      <div class="form-group fg2"><label class="form-label">Médico *</label><select id="medicoSel"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group fg1"><label class="form-label">Tipo</label>
+        <select id="tipo"><option>Consulta</option><option>Retorno</option><option>Exame</option><option>Procedimento</option><option>ASO</option><option>Outro</option></select>
+      </div>
+      <div class="form-group fg2"><label class="form-label">Convênio</label>
+        <select id="convenio"><option>Particular</option><option>UNIMED</option><option>AMIL</option><option>Bradesco Saúde</option><option>SulAmérica</option><option>SUS</option><option>Outro</option></select>
+      </div>
+      <div class="form-group fg1"><label class="form-label">Valor (R$)</label><input type="number" id="valor" placeholder="0,00" min="0" step="0.01"></div>
+      <div class="form-group fg2"><label class="form-label">Observações</label><input id="obs" placeholder="Informações adicionais..."></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:13px">
+      <button class="btn btn-primary" id="btnSalvar" onclick="salvar()">+ Registrar</button>
+      <button class="btn-cancel" id="btnCancelar" onclick="cancelar()">Cancelar</button>
+    </div>
+    <div class="aviso av-erro" id="avisoErro"></div>
+    <div class="aviso av-ok"   id="avisoOk"></div>
+  </div>
+
+  <!-- FILTROS -->
+  <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
+    <div class="form-group"><label class="form-label">Data</label><input type="date" id="filtroData" oninput="render()"></div>
+    <div class="form-group"><label class="form-label">Médico</label><select id="filtroMedico" onchange="render()" style="width:180px"><option value="">Todos</option></select></div>
+    <div class="form-group"><label class="form-label">Status</label>
+      <select id="filtroStatus" onchange="render()" style="width:150px">
+        <option value="">Todos</option>
+        <option>Agendado</option><option>Confirmado</option><option>Em Atendimento</option><option>Concluído</option><option>Cancelado</option>
+      </select>
+    </div>
+    <button class="btn btn-ghost" onclick="limparFiltros()">Ver Todos</button>
+    <span style="margin-left:auto;font-size:12px;color:var(--muted);align-self:flex-end" id="count"></span>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Data</th><th>Hora</th><th>Paciente</th><th>Médico</th><th>Tipo</th><th>Convênio</th><th>Status</th><th style="text-align:right">Valor</th><th style="text-align:center">Chamar</th><th style="text-align:center">Ações</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- MODAL EDIÇÃO -->
+  <div class="modal-ov" id="modalEdit" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box">
+      <div class="modal-title">✏️ Editar Agendamento</div>
+      <input type="hidden" id="editId">
+      <div class="form-row">
+        <div class="form-group fg1"><label class="form-label">Data</label><input type="date" id="editData"></div>
+        <div class="form-group fg1"><label class="form-label">Hora</label><input type="time" id="editHora"></div>
+        <div class="form-group fg2"><label class="form-label">Médico</label><select id="editMedico"></select></div>
+      </div>
+      <div class="form-row" style="margin-top:10px">
+        <div class="form-group fg1"><label class="form-label">Tipo</label>
+          <select id="editTipo"><option>Consulta</option><option>Retorno</option><option>Exame</option><option>Procedimento</option><option>ASO</option><option>Outro</option></select>
+        </div>
+        <div class="form-group fg1"><label class="form-label">Convênio</label>
+          <select id="editConvenio"><option>Particular</option><option>UNIMED</option><option>AMIL</option><option>Bradesco Saúde</option><option>SulAmérica</option><option>SUS</option><option>Outro</option></select>
+        </div>
+        <div class="form-group fg1"><label class="form-label">Valor</label><input type="number" id="editValor" step="0.01"></div>
+        <div class="form-group fg1"><label class="form-label">Status</label>
+          <select id="editStatus"><option>Agendado</option><option>Confirmado</option><option>Em Atendimento</option><option>Concluído</option><option>Cancelado</option></select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:10px">
+        <div class="form-group" style="flex:1"><label class="form-label">Observações</label><input id="editObs"></div>
+      </div>
+      <div class="modal-acts">
+        <button class="btn btn-ghost" onclick="document.getElementById('modalEdit').style.display='none'">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarEdicao()">Salvar Alteração</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+aplicarTemaAtual()
+const { listarPacientes, listarMedicos, listarAgenda, inserirAgendamento, atualizarAgendamento, deletarAgendamento, getAgendamento, inserirFinanceiro } = require('../js/db.js')
+
+// ── AUTOCOMPLETE PACIENTE ──────────────────────────────────
+function filtrarPac() {
+  const busca = document.getElementById('pacBusca').value.toLowerCase().trim()
+  document.getElementById('pacId').value = ''
+  const list  = document.getElementById('acPac')
+  if (!busca) { list.style.display='none'; return }
+  const pac = listarPacientes(busca).slice(0,7)
+  if (!pac.length) { list.style.display='none'; return }
+  list.innerHTML = pac.map(p=>`
+    <div class="ac-item" onmousedown="selPac(${p.id},'${p.nome.replace(/'/g,"&#39;")}','${p.convenio||'Particular'}')">
+      ${p.nome}<small>${p.cpf||''} ${p.telefone?'· '+p.telefone:''}</small>
+    </div>`).join('')
+  list.style.display='block'
+}
+function selPac(id,nome,conv) {
+  document.getElementById('pacBusca').value   = nome
+  document.getElementById('pacId').value      = id
+  document.getElementById('acPac').style.display='none'
+  document.getElementById('convenio').value   = conv
+}
+document.addEventListener('click',e=>{
+  if (!document.getElementById('acWrapPac')?.contains(e.target))
+    document.getElementById('acPac').style.display='none'
+})
+
+// ── CARREGAR MÉDICOS ───────────────────────────────────────
+function carregarMedicos(selId, val='') {
+  const medicos = listarMedicos(true)
+  const el = document.getElementById(selId)
+  el.innerHTML = '<option value="">— sem médico —</option>'
+  medicos.forEach(m => el.innerHTML+=`<option value="${m.id}" data-nome="${m.nome}" data-esp="${m.especialidade||''}" ${m.id==val?'selected':''}>${m.nome}${m.especialidade?' — '+m.especialidade:''}</option>`)
+  el.innerHTML += '<option value="outro" data-nome="Outro profissional" data-esp="">Outro profissional</option>'
+}
+
+// ── SALVAR ─────────────────────────────────────────────────
+function salvar() {
+  const data    = document.getElementById('data').value
+  const hora    = document.getElementById('hora').value
+  const pacId   = document.getElementById('pacId').value
+  const pacNome = document.getElementById('pacBusca').value.trim()
+  const medSel  = document.getElementById('medicoSel')
+  const medId   = medSel.value
+  const medNome = medSel.selectedOptions[0]?.dataset.nome||''
+  const medEsp  = medSel.selectedOptions[0]?.dataset.esp||''
+  const tipo    = document.getElementById('tipo').value
+  const convenio= document.getElementById('convenio').value
+  const valor   = Number(document.getElementById('valor').value||0)
+  const obs     = document.getElementById('obs').value.trim()
+
+  if (!data)              return aviso('erro','Selecione a data.')
+  if (!hora)              return aviso('erro','Informe o horário.')
+  if (!pacNome||!pacId)  return aviso('erro','Selecione um paciente da lista.')
+
+  // medico_id: null se vazio ou "outro"
+  const medIdFinal = (medId && medId !== 'outro') ? Number(medId) : null
+
+  inserirAgendamento({ data, hora, paciente_id:Number(pacId), paciente_nome:pacNome, medico_id:medIdFinal, medico_nome:medNome||'', especialidade:medEsp||'', tipo, convenio, valor, obs })
+  aviso('ok','Agendamento registrado!')
+  document.getElementById('hora').value=''; document.getElementById('pacBusca').value=''; document.getElementById('pacId').value=''; document.getElementById('obs').value=''; document.getElementById('valor').value=''
+  render()
+}
+
+// ── EDIÇÃO ─────────────────────────────────────────────────
+function abrirEdicao(id) {
+  const a = getAgendamento(id); if (!a) return
+  document.getElementById('editId').value       = id
+  document.getElementById('editData').value     = a.data
+  document.getElementById('editHora').value     = a.hora
+  document.getElementById('editTipo').value     = a.tipo
+  document.getElementById('editConvenio').value = a.convenio
+  document.getElementById('editValor').value    = a.valor
+  document.getElementById('editStatus').value   = a.status
+  document.getElementById('editObs').value      = a.obs||''
+  carregarMedicos('editMedico', a.medico_id)
+  document.getElementById('modalEdit').style.display='flex'
+}
+
+function salvarEdicao() {
+  const id     = Number(document.getElementById('editId').value)
+  const medSel = document.getElementById('editMedico')
+  const status = document.getElementById('editStatus').value
+  const d = {
+    id, data:document.getElementById('editData').value, hora:document.getElementById('editHora').value,
+    medico_id:medSel.value, medico_nome:medSel.selectedOptions[0]?.dataset.nome||'',
+    tipo:document.getElementById('editTipo').value, convenio:document.getElementById('editConvenio').value,
+    valor:Number(document.getElementById('editValor').value||0),
+    status, obs:document.getElementById('editObs').value.trim()
+  }
+  atualizarAgendamento(d)
+  // Se concluído, lança no financeiro automaticamente
+  if (status === 'Concluído' && d.valor > 0) {
+    const a = getAgendamento(id)
+    inserirFinanceiro({ data:d.data, tipo:'Receita', descricao:`${d.tipo} — ${a?.paciente_nome||''}`, valor:d.valor, forma_pgto:'A definir', convenio:d.convenio, paciente_nome:a?.paciente_nome||'', medico_nome:d.medico_nome, agenda_id:id })
+  }
+  document.getElementById('modalEdit').style.display='none'
+  render()
+}
+
+function excluir(id) { confirmar('Excluir este agendamento? Esta ação não pode ser desfeita.', ok => { if(ok) { deletarAgendamento(id); render() } }) }
+
+// ── FILTROS ────────────────────────────────────────────────
+function limparFiltros() { document.getElementById('filtroData').value=''; document.getElementById('filtroMedico').value=''; document.getElementById('filtroStatus').value=''; render() }
+
+function render() {
+  const filtros = {}
+  const fd = document.getElementById('filtroData').value
+  const fm = document.getElementById('filtroMedico').value
+  const fs = document.getElementById('filtroStatus').value
+  if (fd) filtros.data      = fd
+  if (fm) filtros.medico_id = fm
+  if (fs) filtros.status    = fs
+  const lista = listarAgenda(filtros)
+  document.getElementById('count').textContent = lista.length+' agendamento(s)'
+
+  // Atualiza filtro médico
+  const fm_el = document.getElementById('filtroMedico')
+  const cur   = fm_el.value
+  fm_el.innerHTML = '<option value="">Todos os médicos</option>'
+  listarMedicos(true).forEach(m=>fm_el.innerHTML+=`<option value="${m.id}" ${m.id==cur?'selected':''}>${m.nome}</option>`)
+
+  document.getElementById('tbody').innerHTML = lista.length ? lista.map(a=>`
+    <tr>
+      <td>${fmtData(a.data)}</td>
+      <td><b style="color:var(--fg)">${a.hora}</b></td>
+      <td>${a.paciente_nome||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${a.medico_nome||'—'}</td>
+      <td><span class="badge b-blue">${a.tipo}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${a.convenio}</td>
+      <td><span class="badge ${STATUS_CORES[a.status]||'b-blue'}">${a.status}</span></td>
+      <td style="text-align:right;color:var(--green);font-weight:700">${fmtMoeda(a.valor)}</td>
+      <td style="text-align:center">
+        <button onclick="chamarPaciente(${a.id})" title="Chamar paciente no painel TV" style="background:var(--teal);border:none;border-radius:8px;color:#fff;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;white-space:nowrap">
+          📢 Chamar
+        </button>
+      </td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="btn-edit" onclick="abrirEdicao(${a.id})" title="Editar">✏️</button>
+        <button class="btn-danger" onclick="excluir(${a.id})" title="Excluir">🗑️</button>
+      </td>
+    </tr>`).join('')
+  : '<tr><td colspan="9" class="empty">Nenhum agendamento encontrado.</td></tr>'
+}
+
+
+// ── PAINEL TV ──────────────────────────────────────────────
+const { ipcRenderer } = require('electron')
+
+async function abrirPainelTV() {
+  const r = await ipcRenderer.invoke('abrir-painel-tv')
+  if (!r.sucesso) aviso('erro', 'Erro ao abrir painel: ' + (r.mensagem||''))
+}
+
+async function chamarPaciente(id) {
+  const a = getAgendamento(id)
+  if (!a) return
+  const dados = {
+    nome:   a.paciente_nome || '—',
+    medico: a.medico_nome   || '',
+    tipo:   a.tipo          || 'Consulta',
+    sala:   ''   // pode ser expandido no futuro
+  }
+  const r = await ipcRenderer.invoke('chamar-paciente', dados)
+  if (r.sucesso) {
+    aviso('ok', `📢 ${dados.nome} chamado no painel!`)
+  } else {
+    aviso('erro', 'Erro ao chamar paciente.')
+  }
+}
+
+// INIT
+document.getElementById('data').value = dataHoje()
+carregarMedicos('medicoSel')
+render()
+</script>
+</body></html>

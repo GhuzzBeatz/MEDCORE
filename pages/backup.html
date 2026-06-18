@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body>
+<div class="page-wrap">
+  <div class="page-header">
+    <div><div class="page-title">💾 Backup e Migração de Dados</div><div class="page-sub">Exporte ou restaure todos os dados do MedCore</div></div>
+  </div>
+
+  <div class="aviso av-ok" id="avisoOk"></div>
+  <div class="aviso av-erro" id="avisoErro"></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <!-- EXPORTAR -->
+    <div class="form-card" style="border-color:var(--green);background:var(--green-bg)">
+      <div class="form-card-title" style="color:var(--green)">📤 Exportar Backup</div>
+      <p style="font-size:13px;color:var(--fg2);margin-bottom:14px;line-height:1.7">
+        Salva <b>todos</b> os dados do MedCore em um único arquivo <code style="background:var(--card2);padding:2px 6px;border-radius:4px">.json</code>:
+        pacientes, médicos, prontuários, ASOs, receituários, agendamentos, financeiro, configurações e banco de exames.
+      </p>
+      <ul style="font-size:12px;color:var(--fg2);padding-left:18px;margin-bottom:16px;line-height:2">
+        <li>Pacientes e médicos cadastrados</li>
+        <li>Prontuários, ASOs, receituários</li>
+        <li>Banco de exames e medicamentos</li>
+        <li>Histórico financeiro</li>
+        <li>Agenda e configurações</li>
+      </ul>
+      <button class="btn btn-primary" onclick="exportarBackup()" style="background:var(--green);width:100%;justify-content:center;font-size:14px;padding:12px">
+        ⬇️ Exportar Backup Completo
+      </button>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center" id="ultimoBackup"></div>
+    </div>
+
+    <!-- RESTAURAR -->
+    <div class="form-card" style="border-color:var(--orange);background:var(--orange-bg)">
+      <div class="form-card-title" style="color:var(--orange)">📥 Restaurar Backup</div>
+      <p style="font-size:13px;color:var(--fg2);margin-bottom:14px;line-height:1.7">
+        Carrega um arquivo de backup gerado pelo MedCore. <b style="color:var(--orange)">Atenção:</b> os dados atuais serão <b>substituídos</b> pelos dados do arquivo.
+      </p>
+      <div style="background:var(--card2);border:2px dashed var(--orange);border-radius:10px;padding:20px;text-align:center;margin-bottom:14px;cursor:pointer" onclick="document.getElementById('inputBackup').click()">
+        <div style="font-size:32px;margin-bottom:8px">📂</div>
+        <div style="font-size:13px;color:var(--fg2)">Clique para selecionar o arquivo de backup</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Formato: <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">medcore_backup_*.json</code></div>
+        <input type="file" id="inputBackup" accept=".json" style="display:none" onchange="previewBackup(event)">
+      </div>
+      <div id="previewBox" style="display:none;background:var(--card2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:var(--fg2)"></div>
+      <button class="btn" onclick="restaurarBackup()" id="btnRestore" style="display:none;background:var(--orange);color:#000;width:100%;justify-content:center;font-size:14px;padding:12px">
+        ⚠️ Restaurar e Substituir Dados
+      </button>
+    </div>
+
+  </div>
+
+  <!-- COMO MIGRAR PARA OUTRO PC -->
+  <div class="form-card" style="margin-top:0">
+    <div class="form-card-title">🖥️ Como migrar para outro computador</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">
+
+      <div style="background:var(--card2);border-radius:10px;padding:14px 16px;font-size:12.5px;color:var(--fg2);line-height:1.8">
+        <div style="font-size:28px;margin-bottom:8px">01</div>
+        No PC antigo, clique em <b style="color:var(--fg)">Exportar Backup</b> e salve o arquivo <code style="background:var(--bg2);padding:1px 5px;border-radius:4px;font-size:11px">.json</code> em um pen drive ou na nuvem.
+      </div>
+
+      <div style="background:var(--card2);border-radius:10px;padding:14px 16px;font-size:12.5px;color:var(--fg2);line-height:1.8">
+        <div style="font-size:28px;margin-bottom:8px">02</div>
+        No PC novo, instale o <b style="color:var(--fg)">MedCore</b> normalmente e abra o aplicativo.
+      </div>
+
+      <div style="background:var(--card2);border-radius:10px;padding:14px 16px;font-size:12.5px;color:var(--fg2);line-height:1.8">
+        <div style="font-size:28px;margin-bottom:8px">03</div>
+        Vá em <b style="color:var(--fg)">Backup → Restaurar</b>, clique na área pontilhada e selecione o arquivo exportado.
+      </div>
+
+      <div style="background:var(--card2);border-radius:10px;padding:14px 16px;font-size:12.5px;color:var(--fg2);line-height:1.8">
+        <div style="font-size:28px;margin-bottom:8px">04</div>
+        Confirme a restauração. <b style="color:var(--green)">Todos os dados serão transferidos automaticamente ✅</b>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BACKUP INDIVIDUAL POR ARQUIVO -->
+  <div class="form-card" style="margin-top:0">
+    <div class="form-card-title">📋 Status dos Dados</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:8px" id="statusGrid">
+      <div style="color:var(--muted);font-size:12px">Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+aplicarTemaAtual()
+const fs   = require('fs')
+const path = require('path')
+const { ipcRenderer } = require('electron')
+
+function getDataDir() {
+  const arg = process.argv.find(a => a.startsWith('--data-dir='))
+  return arg ? arg.replace('--data-dir=', '') : path.join(__dirname, '..', 'data')
+}
+
+const DATA_DIR = getDataDir()
+
+const ARQUIVOS = [
+  { nome:'pacientes',       icone:'👥', label:'Pacientes' },
+  { nome:'medicos',         icone:'🩺', label:'Médicos' },
+  { nome:'prontuarios',     icone:'📝', label:'Prontuários' },
+  { nome:'asos',            icone:'📋', label:'ASOs' },
+  { nome:'agenda',          icone:'📅', label:'Agenda' },
+  { nome:'financeiro',      icone:'💰', label:'Financeiro' },
+  { nome:'exames_banco',    icone:'🔬', label:'Banco Exames' },
+  { nome:'medicamentos',    icone:'💊', label:'Medicamentos' },
+  { nome:'solicitacoes_exames', icone:'📄', label:'Solicitações' },
+  { nome:'receituarios_salvos', icone:'📃', label:'Receituários' },
+  { nome:'locais',          icone:'🏥', label:'Locais' },
+  { nome:'config',          icone:'⚙️', label:'Configurações' },
+]
+
+function lerArquivo(nome, padrao=[]) {
+  try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR, nome+'.json'), 'utf8')) } catch(e) { return padrao }
+}
+
+function renderStatus() {
+  const grid = document.getElementById('statusGrid')
+  grid.innerHTML = ARQUIVOS.map(a => {
+    const dados = lerArquivo(a.nome, a.nome === 'config' ? {} : [])
+    const qtd   = Array.isArray(dados) ? dados.length : Object.keys(dados).length
+    return `<div style="background:var(--card2);border-radius:9px;padding:11px 14px;display:flex;align-items:center;gap:10px">
+      <div style="font-size:20px">${a.icone}</div>
+      <div>
+        <div style="font-size:11px;color:var(--muted)">${a.label}</div>
+        <div style="font-size:16px;font-weight:800;color:var(--fg)">${Array.isArray(dados)?qtd+'reg':qtd+' chaves'}</div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+async function exportarBackup() {
+  try {
+    const backup = { versao: 'MedCore-v4', exportado_em: new Date().toISOString(), dados: {} }
+    ARQUIVOS.forEach(a => backup.dados[a.nome] = lerArquivo(a.nome, a.nome==='config'?{}:[]))
+    const nomeArq = `medcore_backup_${new Date().toLocaleDateString('sv-SE').replace(/-/g,'')}.json`
+    
+    const result = await ipcRenderer.invoke('salvar-arquivo', {
+      conteudo: JSON.stringify(backup, null, 2),
+      nomeArquivo: nomeArq,
+      extensao: 'json',
+      filtro: 'Backup MedCore'
+    })
+    
+    if (result?.sucesso) {
+      const tamanho = (fs.statSync(result.caminho).size / 1024).toFixed(1)
+      aviso('ok', `✓ Backup exportado: ${path.basename(result.caminho)} (${tamanho} KB)`)
+      localStorage.setItem('@MEDCORE:ultimo_backup', new Date().toLocaleString('pt-BR'))
+      document.getElementById('ultimoBackup').textContent = 'Último backup: ' + new Date().toLocaleString('pt-BR')
+      renderStatus()
+    } else if (result?.motivo !== 'cancelado') {
+      aviso('erro', 'Erro ao salvar: ' + (result?.erro||'desconhecido'))
+    }
+  } catch(e) {
+    aviso('erro', 'Erro ao exportar: ' + e.message)
+  }
+}
+
+let backupParaRestaurar = null
+
+function previewBackup(event) {
+  const file = event.target.files[0]; if (!file) return
+  const reader = new FileReader()
+  reader.onload = e => {
+    try {
+      const backup = JSON.parse(e.target.result)
+      if (!backup.versao || !backup.dados) { aviso('erro', 'Arquivo de backup inválido'); return }
+      backupParaRestaurar = backup
+      const itens = Object.entries(backup.dados).map(([k, v]) => {
+        const a = ARQUIVOS.find(x=>x.nome===k)
+        const qtd = Array.isArray(v) ? v.length : Object.keys(v).length
+        return `<b>${a?.icone||'📄'} ${a?.label||k}:</b> ${qtd} ${Array.isArray(v)?'registro(s)':'chave(s)'}`
+      }).join('<br>')
+      document.getElementById('previewBox').innerHTML = `
+        <div style="font-size:11px;font-weight:700;color:var(--orange);margin-bottom:6px">📦 Arquivo: ${file.name} — Exportado em: ${backup.exportado_em?new Date(backup.exportado_em).toLocaleString('pt-BR'):'—'}</div>
+        ${itens}`
+      document.getElementById('previewBox').style.display = 'block'
+      document.getElementById('btnRestore').style.display = 'inline-flex'
+    } catch(e) { aviso('erro', 'Arquivo inválido ou corrompido') }
+  }
+  reader.readAsText(file)
+}
+
+function restaurarBackup() {
+  if (!backupParaRestaurar) return
+  confirmar('⚠️ Esta ação vai SUBSTITUIR todos os dados atuais pelos dados do backup.\n\nDeseja continuar?', ok => {
+    if (!ok) return
+    try {
+      Object.entries(backupParaRestaurar.dados).forEach(([nome, dados]) => {
+        fs.writeFileSync(path.join(DATA_DIR, nome+'.json'), JSON.stringify(dados, null, 2), 'utf8')
+      })
+      aviso('ok', '✓ Dados restaurados com sucesso! Reinicie o MedCore para garantir que tudo foi carregado.')
+      renderStatus()
+    } catch(e) { aviso('erro', 'Erro ao restaurar: ' + e.message) }
+  }, 'Sim, restaurar', 'Cancelar')
+}
+
+// Init
+renderStatus()
+const ub = localStorage.getItem('@MEDCORE:ultimo_backup')
+if (ub) document.getElementById('ultimoBackup').textContent = 'Último backup: ' + ub
+</script>
+</body></html>
