@@ -1,0 +1,84 @@
+name: Build & Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: build-release-medcore
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bump patch version
+        shell: pwsh
+        run: |
+          npm version patch --no-git-tag-version
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          "APP_VERSION=$($pkg.version)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build setup
+        run: npm run build -- --publish never
+
+      - name: Resolve setup file
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist_installer -File -Recurse |
+            Where-Object { $_.Name -like '*.exe' -and $_.Name -notlike '*.blockmap' -and $_.Name -like '*Setup*' } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+          if (-not $setup) {
+            $setup = Get-ChildItem dist_installer -File -Recurse |
+              Where-Object { $_.Name -like '*.exe' -and $_.Name -notlike '*.blockmap' } |
+              Sort-Object Length -Descending |
+              Select-Object -First 1
+          }
+
+          if (-not $setup) {
+            throw 'Setup .exe nao encontrado em dist_installer.'
+          }
+
+          "SETUP_NAME=$($setup.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "SETUP_PATH=$($setup.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ env.APP_VERSION }}
+          name: MedCore v${{ env.APP_VERSION }}
+          body: Build automatico - MedCore v${{ env.APP_VERSION }}
+          files: |
+            ${{ env.SETUP_PATH }}
+          overwrite_files: true
+
+      - name: Commit version bump
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "chore(release): v$env:APP_VERSION [skip ci]"
+            git push
+          }
