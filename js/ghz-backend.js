@@ -93,10 +93,10 @@ module.exports = function setup(config) {
   }
 
   // ── LICENSE ACTIVATE / VALIDATE ─────────────────────────
-  async function activate(key) {
+  async function activate(key, phone) {
     const k = String(key || '').trim().toUpperCase()
     const d = getDeviceInfo()
-    const r = await supabaseRpc('ghz_activate_license', { p_license_key: k, p_device_hash: d.device_hash, p_device_name: d.device_name, p_device_os: d.device_os, p_app_version: d.app_version })
+    const r = await supabaseRpc('ghz_activate_license', { p_license_key: k, p_device_hash: d.device_hash, p_device_name: d.device_name, p_device_os: d.device_os, p_app_version: d.app_version, p_customer_phone: String(phone || '') })
     if (!r?.ok) { saveState({ active: false, license_key: k, last_error: r?.message || 'Licença inválida.' }); return r || { ok: false, message: 'Licença inválida.' } }
     saveState({ active: true, license_key: k, customer_name: r.customer_name || '', activated_at: r.activated_at || new Date().toISOString(), last_validated_at: new Date().toISOString(), last_error: '' })
     return r
@@ -219,7 +219,7 @@ module.exports = function setup(config) {
     const i = getDeviceInfo()
     return { device_hash_preview: i.device_hash.slice(0, 12), device_name: i.device_name, device_os: i.device_os }
   })
-  ipcMain.handle('license:activate', async (e, { license_key }) => activate(license_key))
+  ipcMain.handle('license:activate', async (e, { license_key, phone }) => activate(license_key, phone))
   ipcMain.handle('license:validate', async () => validate())
 
   ipcMain.handle('updates:get-state', async () => ({ ...readUpdateState(), current_version: app.getVersion() }))

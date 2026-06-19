@@ -16,7 +16,9 @@
       Apos a compra, a chave foi enviada via mensagem.<br>
       Formato: <span style="font-family:monospace;color:var(--primary);font-weight:700">MEDCOR-XXXX-XXXX-XXXX-XXXX</span>
     </div>
-    <input class="lic-input" id="inputChave" maxlength="30" placeholder="MEDCOR-XXXX-XXXX-XXXX-XXXX" oninput="fmt(this)" onkeydown="if(event.key==='Enter')ativar()">
+    <input class="lic-input" id="inputChave" maxlength="30" placeholder="MEDCOR-XXXX-XXXX-XXXX-XXXX" oninput="fmt(this)" onkeydown="if(event.key==='Enter')document.getElementById('inputPhone').focus()">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Seu WhatsApp (para suporte)</div>
+    <input class="lic-input" id="inputPhone" type="tel" maxlength="20" placeholder="(11) 99999-9999" onkeydown="if(event.key==='Enter')ativar()">
     <button class="lic-btn" id="btnAtivar" onclick="ativar()">&#128273; Ativar Licenca</button>
     <div style="background:var(--red-bg,#2d1b1b);border:1px solid rgba(240,82,82,.25);color:var(--red,#f87171);border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;margin-top:12px;display:none" id="erro"></div>
     <div style="background:#1b2d1b;border:1px solid rgba(74,222,128,.25);color:#4ade80;border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;margin-top:12px;display:none" id="msgOk"></div>
@@ -55,7 +57,7 @@ async function ativar() {
     if (state.active && state.license_key === chave) {
       result = await ghzLicense.validateOnline()
     } else {
-      result = await ghzLicense.activateOnline(chave)
+      result = await ghzLicense.activateOnline(chave, document.getElementById('inputPhone').value.trim())
     }
 
     if (result?.ok) {

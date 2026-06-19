@@ -29,9 +29,9 @@ window.GHZ_APP_ID = 'medcore'
     return Number.isFinite(t) && Date.now() - t <= CACHE_MAX_MS
   }
 
-  async function activateOnline(key) {
+  async function activateOnline(key, phone) {
     const { ipcRenderer } = require('electron')
-    const r = await ipcRenderer.invoke('license:activate', { license_key: normalize(key) })
+    const r = await ipcRenderer.invoke('license:activate', { license_key: normalize(key), phone: String(phone || '') })
     if (r?.ok) saveCache({ active: true, license_key: r.license_key || key, customer_name: r.customer_name || '', activated_at: r.activated_at, last_validated_at: r.last_seen_at || new Date().toISOString() })
     else clearCache()
     return r
