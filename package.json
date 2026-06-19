@@ -1,6 +1,6 @@
 {
   "name": "medcore",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Sistema de Gestao MedCore - Clinicas e Consultorio Medico",
   "main": "main.js",
   "author": "GHZ Plugin",
