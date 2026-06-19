@@ -2355,30 +2355,8 @@ ipcMain.handle('workspace:enter', async (event, payload) => {
 })
 
 
-ipcMain.handle('license:activate', async (event, payload) => {
-  if (!isMysqlCloudMode()) {
-    return { ok: false, message: 'Licenciamento por chave esta disponivel apenas na versao MySQL.' }
-  }
-  try {
-    return await activateLicenseOnline(payload && payload.licenseKey, 'activate')
-  } catch (err) {
-    return { ok: false, message: err && err.message ? err.message : String(err) }
-  }
-})
-
-ipcMain.handle('license:validate-saved', async () => {
-  if (!isMysqlCloudMode()) {
-    return { ok: false, message: 'Licenciamento por chave esta disponivel apenas na versao MySQL.' }
-  }
-  try {
-    const state = readLicenseState()
-    const key = normalizeLicenseKey(state.license_key || '')
-    if (!key) return { ok: false, missing: true, message: 'Nenhuma chave salva.' }
-    return await activateLicenseOnline(key, 'validate')
-  } catch (err) {
-    return { ok: false, message: err && err.message ? err.message : String(err) }
-  }
-})
+// license:activate e license:validate agora sao gerenciados pelo ghz-backend.js
+// license:validate-saved foi substituido por license:validate do ghz-backend
 
 ipcMain.handle('window-theme:set', async (event, payload) => {
   try {
@@ -2506,6 +2484,13 @@ ipcMain.handle('salvar-arquivo', async (event, { conteudo, nomeArquivo, extensao
   } catch (e) {
     return { sucesso: false, erro: e.message }
   }
+})
+
+// ── GHZ LICENSE + AUTO-UPDATE BACKEND ─────────────────────
+require('./js/ghz-backend')({
+  app, ipcMain, getDataDir,
+  appId: 'medcore',
+  manifestUrl: 'https://raw.githubusercontent.com/GhuzzBeatz/MEDCORE/master/update-manifest.json'
 })
 
 app.whenReady().then(() => {

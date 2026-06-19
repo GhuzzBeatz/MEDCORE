@@ -1,33 +1,53 @@
-const LS_KEY_MC = '@MEDCORE:licenca'
-const SESSION_KEY_MC = '@MEDCORE:license_session_ok'
+// GHZ License — modulo frontend reutilizavel
+window.GHZ_APP_ID = 'medcore'
+;(function () {
+  const APP_ID = window.GHZ_APP_ID
+  const LS_KEY = `@${APP_ID.toUpperCase()}:licenca_cache`
+  const SESSION_KEY = `@${APP_ID.toUpperCase()}:licenca_sessao`
+  const CACHE_MAX_MS = 48 * 60 * 60 * 1000
 
-function normalizarChaveMC(key) {
-  const raw = String(key || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
-  if (!raw) return ''
-  const body = raw.startsWith('MEDCORE') ? raw.slice(7) : raw
-  if (body.length < 16) return raw
-  return `MEDCORE-${body.slice(0, 4)}-${body.slice(4, 8)}-${body.slice(8, 12)}-${body.slice(12, 16)}`
-}
+  function normalize(k) { return String(k || '').trim().toUpperCase() }
+  function getCache() { try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null') } catch (e) { return null } }
 
-function licencaAtivaMC() {
-  try { return sessionStorage.getItem(SESSION_KEY_MC) === '1' }
-  catch(e) { return false }
-}
+  function saveCache(d) {
+    const p = { active: d.active === true, license_key: normalize(d.license_key), customer_name: String(d.customer_name || ''), activated_at: d.activated_at || new Date().toISOString(), last_validated_at: d.last_validated_at || new Date().toISOString() }
+    localStorage.setItem(LS_KEY, JSON.stringify(p))
+    return p
+  }
 
-function getLicencaSalvaMC() {
-  try { return localStorage.getItem(LS_KEY_MC) || '' }
-  catch(e) { return '' }
-}
+  function clearCache() { localStorage.removeItem(LS_KEY); sessionStorage.removeItem(SESSION_KEY) }
+  function markSession() { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ok: true, at: new Date().toISOString() })) }
 
-function salvarLicencaMC(key) {
-  localStorage.setItem(LS_KEY_MC, normalizarChaveMC(key))
-}
+  function sessionValid() {
+    try { const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); return s?.ok === true && cacheActive() } catch (e) { return false }
+  }
 
-function salvarSessaoLicencaMC(key) {
-  salvarLicencaMC(key)
-  sessionStorage.setItem(SESSION_KEY_MC, '1')
-}
+  function cacheActive() {
+    const c = getCache()
+    if (!c?.active || !c.license_key) return false
+    const t = Date.parse(c.last_validated_at || c.activated_at || '')
+    return Number.isFinite(t) && Date.now() - t <= CACHE_MAX_MS
+  }
 
-function limparSessaoLicencaMC() {
-  try { sessionStorage.removeItem(SESSION_KEY_MC) } catch(e) {}
-}
+  async function activateOnline(key) {
+    const { ipcRenderer } = require('electron')
+    const r = await ipcRenderer.invoke('license:activate', { license_key: normalize(key) })
+    if (r?.ok) saveCache({ active: true, license_key: r.license_key || key, customer_name: r.customer_name || '', activated_at: r.activated_at, last_validated_at: r.last_seen_at || new Date().toISOString() })
+    else clearCache()
+    return r
+  }
+
+  async function validateOnline() {
+    const { ipcRenderer } = require('electron')
+    const r = await ipcRenderer.invoke('license:validate')
+    if (r?.ok) { const c = getCache() || {}; saveCache({ active: true, license_key: r.license_key || c.license_key, customer_name: r.customer_name || c.customer_name || '', activated_at: r.activated_at || c.activated_at, last_validated_at: r.last_seen_at || new Date().toISOString() }) }
+    else clearCache()
+    return r
+  }
+
+  function licencaAtiva() { return cacheActive() }
+
+  window.ghzLicense = { getCache, saveCache, clearCache, markSession, sessionValid, cacheActive, activateOnline, validateOnline, normalize, licencaAtiva }
+  // Compat: manter nome antigo usado no index.html
+  window.licencaAtivaMC = cacheActive
+})()

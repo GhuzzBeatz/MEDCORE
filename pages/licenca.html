@@ -1,104 +1,103 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-tema="light">
-<head>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" href="../css/style.css">
-  <script src="../js/licenca.js"></script>
-  <script src="../js/util.js"></script>
-</head>
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/licenca.js"></script><script src="../js/util.js"></script></head>
 <body>
 <div class="lic-body">
   <div class="lic-box">
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
-      <div style="width:52px;height:52px;background:linear-gradient(135deg,#2563eb,#0891b2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 20px rgba(37,99,235,0.35)">??</div>
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,#2563eb,#0891b2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 20px rgba(37,99,235,0.35)">&#127973;</div>
       <div>
         <div style="font-size:26px;font-weight:900;color:var(--fg)">Med<span style="color:#0891b2">Core</span></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">Ativacao online por chave</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Sistema Medico &#8212; Ativacao</div>
       </div>
     </div>
-
-    <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:6px">Digite sua chave de ativacao</div>
+    <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:6px">Insira sua Chave de Licenca</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6">
-      A chave foi enviada apos a compra. Cada chave libera ate 5 computadores da mesma clinica.<br>
-      O acesso e validado online toda vez que o app abre.
+      Apos a compra, a chave foi enviada via mensagem.<br>
+      Formato: <span style="font-family:monospace;color:var(--primary);font-weight:700">MEDCOR-XXXX-XXXX-XXXX-XXXX</span>
     </div>
-
-    <input class="lic-input" id="inputChave" maxlength="28"
-      placeholder="MEDCORE-XXXX-XXXX-XXXX-XXXX"
-      oninput="fmt(this)" onkeydown="if(event.key==='Enter')ativar()">
-
-    <button class="lic-btn" id="btnAtivar" onclick="ativar()">?? Entrar / Ativar</button>
-
-    <div style="background:var(--red-bg);border:1px solid rgba(220,38,38,.25);color:var(--red);border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;margin-top:12px;display:none;white-space:pre-line" id="erro"></div>
-
-    <div style="background:var(--green-bg);border:1px solid rgba(22,163,74,.25);color:var(--green);border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;margin-top:12px;display:none" id="ok"></div>
-
-    <div style="text-align:center;margin-top:22px;font-size:11px;color:var(--muted)">
-      Suporte: WhatsApp (11) 94898-1459 ? GHZPLUGIN@GMAIL.COM
+    <input class="lic-input" id="inputChave" maxlength="30" placeholder="MEDCOR-XXXX-XXXX-XXXX-XXXX" oninput="fmt(this)" onkeydown="if(event.key==='Enter')ativar()">
+    <button class="lic-btn" id="btnAtivar" onclick="ativar()">&#128273; Ativar Licenca</button>
+    <div style="background:var(--red-bg,#2d1b1b);border:1px solid rgba(240,82,82,.25);color:var(--red,#f87171);border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;margin-top:12px;display:none" id="erro"></div>
+    <div style="background:#1b2d1b;border:1px solid rgba(74,222,128,.25);color:#4ade80;border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;margin-top:12px;display:none" id="msgOk"></div>
+    <div id="deviceBox" style="margin-top:16px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px;font-size:11px;color:var(--muted,#6b7280);display:none">
+      <b>Computador:</b> <span id="dName">&#8212;</span> &middot; <b>Sistema:</b> <span id="dOs">&#8212;</span>
     </div>
+    <div style="text-align:center;margin-top:22px;font-size:11px;color:var(--muted,#6b7280)">Suporte: WhatsApp (11) 94898-1459 &middot; GHZPLUGIN@GMAIL.COM</div>
   </div>
 </div>
 <script>
-aplicarTemaAtual()
-const { ipcRenderer } = require('electron')
-const { setConfig } = require('../js/db.js')
-
-const input = document.getElementById('inputChave')
-input.value = normalizarChaveMC(getLicencaSalvaMC())
-setTimeout(() => input.focus(), 100)
+if (typeof aplicarTemaAtual === 'function') aplicarTemaAtual()
 
 function fmt(inp) {
-  inp.value = normalizarChaveMC(inp.value)
-}
-
-function mostrarErro(msg) {
-  const erro = document.getElementById('erro')
-  erro.textContent = msg || 'Nao foi possivel validar a licenca.'
-  erro.style.display = 'block'
-  document.getElementById('ok').style.display = 'none'
-  input.style.borderColor = 'var(--red)'
-  setTimeout(() => { input.style.borderColor = '' }, 4000)
+  let v = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, ''), r = ''
+  const p = v.match(/^[A-Z]+/)
+  const prefixLen = p ? Math.min(p[0].length, 6) : 0
+  const parts = []
+  let pos = 0
+  if (prefixLen > 0) { parts.push(v.slice(0, prefixLen)); pos = prefixLen }
+  while (pos < v.length) { parts.push(v.slice(pos, pos + 4)); pos += 4 }
+  inp.value = parts.join('-')
 }
 
 async function ativar() {
-  const chave = normalizarChaveMC(input.value)
   const btn = document.getElementById('btnAtivar')
-  if (!chave || chave.length < 24) {
-    mostrarErro('Digite a chave de ativacao completa.')
-    return
-  }
+  const chave = document.getElementById('inputChave').value.trim().toUpperCase()
+  if (!chave || chave.length < 10) { mostrarErro('Insira uma chave valida.'); return }
 
   btn.disabled = true
-  btn.textContent = 'Validando online...'
+  btn.textContent = '⏳ Validando...'
   document.getElementById('erro').style.display = 'none'
 
   try {
-    const res = await ipcRenderer.invoke('license:activate', { licenseKey: chave })
-    if (!res || !res.ok) {
-      mostrarErro((res && res.message) || 'Licenca nao liberada.')
-      return
+    const state = await require('electron').ipcRenderer.invoke('license:get-state')
+    let result
+    if (state.active && state.license_key === chave) {
+      result = await ghzLicense.validateOnline()
+    } else {
+      result = await ghzLicense.activateOnline(chave)
     }
 
-    salvarSessaoLicencaMC(res.licenseKey || chave)
-    setConfig('license_key', res.licenseKey || chave)
-    setConfig('workspace_key', res.workspaceKey || '')
-    setConfig('sync_workspace_key', res.workspaceKey || '')
-    setConfig('auth_provider', 'license')
-    setConfig('auth_user_id', `license:${res.licenseKey || chave}`)
-    setConfig('auth_user_email', 'medcore@license.local')
-    setConfig('sync_enabled', '1')
-
-    const ok = document.getElementById('ok')
-    ok.textContent = res.activated ? 'Computador ativado com sucesso. Entrando...' : 'Licenca validada. Entrando...'
-    ok.style.display = 'block'
-    setTimeout(() => { window.location.href = '../index.html' }, 700)
-  } catch (err) {
-    mostrarErro(err && err.message ? err.message : String(err))
-  } finally {
-    btn.disabled = false
-    btn.textContent = '?? Entrar / Ativar'
+    if (result?.ok) {
+      ghzLicense.markSession()
+      document.getElementById('msgOk').textContent = '✅ Licenca ativada com sucesso!'
+      document.getElementById('msgOk').style.display = 'block'
+      setTimeout(() => { window.location.replace('../index.html') }, 800)
+      return
+    } else {
+      mostrarErro(result?.message || 'Chave invalida. Verifique e tente novamente.')
+    }
+  } catch (e) {
+    mostrarErro('Erro de conexao. Verifique sua internet e tente novamente.')
   }
+
+  btn.disabled = false
+  btn.textContent = '\u{1F511} Ativar Licenca'
 }
+
+function mostrarErro(txt) {
+  const el = document.getElementById('erro')
+  el.textContent = txt
+  el.style.display = 'block'
+  document.getElementById('inputChave').style.borderColor = 'var(--red,#f87171)'
+  setTimeout(() => { el.style.display = 'none'; document.getElementById('inputChave').style.borderColor = '' }, 5000)
+}
+
+;(async function init() {
+  try {
+    const { ipcRenderer } = require('electron')
+    const [device, state] = await Promise.all([
+      ipcRenderer.invoke('license:device-info'),
+      ipcRenderer.invoke('license:get-state')
+    ])
+    document.getElementById('dName').textContent = device.device_name
+    document.getElementById('dOs').textContent = device.device_os
+    document.getElementById('deviceBox').style.display = ''
+    if (state.license_key) {
+      document.getElementById('inputChave').value = state.license_key
+      if (state.active) document.getElementById('btnAtivar').textContent = '\u{1F513} Entrar'
+    }
+  } catch (e) {}
+})()
 </script>
-</body>
-</html>
+</body></html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="light">
+<head><meta charset="UTF-8"><link rel="stylesheet" href="../css/style.css"><script src="../js/util.js"></script></head>
+<body style="padding:32px">
+<div style="max-width:600px;margin:0 auto">
+  <h2 style="font-size:20px;font-weight:800;color:var(--fg,#e8eaf0);margin-bottom:4px">&#128260; Atualizacao</h2>
+  <p style="font-size:13px;color:var(--muted,#9ca3af);margin-bottom:24px">Verifique se ha uma versao mais recente disponivel.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+    <div style="background:var(--card,#181a20);border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:11px;color:var(--muted,#9ca3af);margin-bottom:4px">Versao Atual</div>
+      <div id="verAtual" style="font-size:22px;font-weight:800;color:var(--fg,#e8eaf0)">&#8212;</div>
+    </div>
+    <div style="background:var(--card,#181a20);border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:11px;color:var(--muted,#9ca3af);margin-bottom:4px">Status</div>
+      <div id="status" style="font-size:15px;font-weight:700;color:#4ade80">Atualizado &#10003;</div>
+    </div>
+  </div>
+
+  <div id="updateInfo" style="background:var(--card,#181a20);border-radius:10px;padding:16px;margin-bottom:20px;display:none">
+    <div style="font-size:14px;font-weight:700;color:var(--fg,#e8eaf0);margin-bottom:8px">Nova versao disponivel: <span id="verNova" style="color:#0891b2">&#8212;</span></div>
+    <div id="updateNotes" style="font-size:12px;color:var(--muted,#9ca3af);margin-bottom:12px"></div>
+    <button class="lic-btn" id="btnInstalar" onclick="instalar()" style="margin-top:0">&#11015;&#65039; Baixar e Instalar</button>
+  </div>
+
+  <div id="lastCheck" style="font-size:11px;color:var(--muted,#6b7280);margin-bottom:16px"></div>
+
+  <button class="lic-btn" id="btnVerificar" onclick="verificar()" style="background:var(--primary,#6366f1)">&#128269; Verificar Atualizacao</button>
+
+  <div style="background:var(--red-bg,#2d1b1b);border:1px solid rgba(240,82,82,.25);color:var(--red,#f87171);border-radius:8px;padding:9px 13px;font-size:13px;font-weight:600;margin-top:12px;display:none" id="erro"></div>
+</div>
+
+<script>
+if (typeof aplicarTemaAtual === 'function') aplicarTemaAtual()
+const { ipcRenderer } = require('electron')
+
+async function carregarEstado() {
+  const s = await ipcRenderer.invoke('updates:get-state')
+  document.getElementById('verAtual').textContent = s.current_version || '—'
+  if (s.last_checked_at) {
+    const d = new Date(s.last_checked_at)
+    document.getElementById('lastCheck').textContent = 'Ultima verificacao: ' + d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR')
+  }
+  if (s.update_available && s.pending_version) {
+    document.getElementById('status').textContent = 'Atualizacao disponivel'
+    document.getElementById('status').style.color = '#fbbf24'
+    document.getElementById('verNova').textContent = s.pending_version
+    document.getElementById('updateNotes').textContent = s.pending_notes || ''
+    document.getElementById('updateInfo').style.display = ''
+  } else {
+    document.getElementById('status').textContent = 'Atualizado ✓'
+    document.getElementById('status').style.color = '#4ade80'
+    document.getElementById('updateInfo').style.display = 'none'
+  }
+}
+
+async function verificar() {
+  const btn = document.getElementById('btnVerificar')
+  btn.disabled = true; btn.textContent = '⏳ Verificando...'
+  document.getElementById('erro').style.display = 'none'
+  try {
+    const r = await ipcRenderer.invoke('updates:check')
+    if (!r.ok) { document.getElementById('erro').textContent = r.error || 'Erro ao verificar.'; document.getElementById('erro').style.display = 'block' }
+    await carregarEstado()
+  } catch (e) { document.getElementById('erro').textContent = 'Erro de conexao.'; document.getElementById('erro').style.display = 'block' }
+  btn.disabled = false; btn.textContent = '\u{1F50D} Verificar Atualizacao'
+}
+
+async function instalar() {
+  const btn = document.getElementById('btnInstalar')
+  btn.disabled = true; btn.textContent = '⬇️ Baixando...'
+  try {
+    const r = await ipcRenderer.invoke('updates:download-install')
+    if (!r.ok) { document.getElementById('erro').textContent = r.message || 'Erro ao baixar.'; document.getElementById('erro').style.display = 'block'; btn.disabled = false; btn.textContent = '⬇️ Baixar e Instalar' }
+  } catch (e) { document.getElementById('erro').textContent = 'Erro ao baixar atualizacao.'; document.getElementById('erro').style.display = 'block'; btn.disabled = false; btn.textContent = '⬇️ Baixar e Instalar' }
+}
+
+carregarEstado()
+</script>
+</body></html>

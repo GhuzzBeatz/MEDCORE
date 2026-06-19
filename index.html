@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="css/style.css">
   <script src="js/licenca.js"></script>
   <script>
-    if (!licencaAtivaMC()) {
+    if (!licencaAtivaMC() && !(window.ghzLicense && window.ghzLicense.sessionValid())) {
       window.location.replace('pages/licenca.html')
     }
   </script>
@@ -159,6 +159,9 @@
       </button>
       <button class="nav-btn" onclick="ir('pages/backup.html',this)">
         <span class="nav-icon">💾</span> Backup / Migracao
+      </button>
+      <button class="nav-btn" onclick="ir('pages/atualizacao.html',this)">
+        <span class="nav-icon">🔄</span> Atualizacao
       </button>
     </nav>
 
@@ -560,7 +563,7 @@
 
     appStarted = false
     authUser = null
-    limparSessaoLicencaMC()
+    if (window.ghzLicense) window.ghzLicense.clearCache()
     workspaceLabel.textContent = '-'
     appContainer.style.display = 'none'
     loginOverlay.style.display = 'flex'
@@ -647,15 +650,11 @@
   ;(async function boot() {
     setSyncStatus('idle', '')
     if (getConfig('auth_provider', '') === 'license') {
-      const validacao = await ipcRenderer.invoke('license:validate-saved')
+      const validacao = await ipcRenderer.invoke('license:validate')
       if (!validacao || !validacao.ok) {
-        limparSessaoLicencaMC()
+        if (window.ghzLicense) window.ghzLicense.clearCache()
         window.location.replace('pages/licenca.html')
         return
-      }
-      if (validacao.workspaceKey) {
-        setConfig('workspace_key', validacao.workspaceKey)
-        setConfig('sync_workspace_key', validacao.workspaceKey)
       }
     }
     workspaceInput.value = getSavedWorkspace()
