@@ -5,11 +5,6 @@
   <title>MedCore</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="js/licenca.js"></script>
-  <script>
-    if (!licencaAtivaMC() && !(window.ghzLicense && window.ghzLicense.sessionValid())) {
-      window.location.replace('pages/licenca.html')
-    }
-  </script>
 </head>
 <body>
 <div id="loginOverlay" class="auth-overlay">
@@ -663,5 +658,6 @@
     await aplicarTemaBarraWindows(localStorage.getItem('@MEDCORE:tema') || 'light')
   })()
 </script>
+<script src="js/ghz-support.js" data-target=".menu-footer" data-accent="#2563eb" data-preserve="true"></script>
 </body>
 </html>
