@@ -1,4 +1,4 @@
-const path = require('path')
+﻿const path = require('path')
 const fs = require('fs')
 const os = require('os')
 const crypto = require('crypto')
@@ -15,7 +15,7 @@ const UPDATE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
 module.exports = function setup(config) {
   const { app, ipcMain, getDataDir, appId, manifestUrl } = config
 
-  // ── SUPABASE RPC ────────────────────────────────────────
+  // â”€â”€ SUPABASE RPC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function supabaseRpc(fn, payload = {}) {
     return new Promise((resolve, reject) => {
       const url = new URL(`/rest/v1/rpc/${fn}`, SUPABASE_URL)
@@ -44,13 +44,13 @@ module.exports = function setup(config) {
         })
       })
       req.on('error', reject)
-      req.setTimeout(20000, () => req.destroy(new Error('Tempo limite ao validar licença.')))
+      req.setTimeout(20000, () => req.destroy(new Error('Tempo limite ao validar licenÃ§a.')))
       req.write(body)
       req.end()
     })
   }
 
-  // ── DEVICE INFO ─────────────────────────────────────────
+  // â”€â”€ DEVICE INFO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function machineGuid() {
     if (process.platform !== 'win32') return ''
     try {
@@ -70,7 +70,7 @@ module.exports = function setup(config) {
     }
   }
 
-  // ── LICENSE STATE ───────────────────────────────────────
+  // â”€â”€ LICENSE STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function statePath() { return path.join(getDataDir(), 'license-state.json') }
 
   function readState() {
@@ -92,27 +92,27 @@ module.exports = function setup(config) {
     return Number.isFinite(t) && Date.now() - t <= LICENSE_CACHE_MAX_MS
   }
 
-  // ── LICENSE ACTIVATE / VALIDATE ─────────────────────────
+  // â”€â”€ LICENSE ACTIVATE / VALIDATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function activate(key, phone) {
     const k = String(key || '').trim().toUpperCase()
     const d = getDeviceInfo()
     const r = await supabaseRpc('ghz_activate_license', { p_license_key: k, p_device_hash: d.device_hash, p_device_name: d.device_name, p_device_os: d.device_os, p_app_version: d.app_version, p_customer_phone: String(phone || '') })
-    if (!r?.ok) { saveState({ active: false, license_key: k, last_error: r?.message || 'Licença inválida.' }); return r || { ok: false, message: 'Licença inválida.' } }
+    if (!r?.ok) { saveState({ active: false, license_key: k, last_error: r?.message || 'LicenÃ§a invÃ¡lida.' }); return r || { ok: false, message: 'LicenÃ§a invÃ¡lida.' } }
     saveState({ active: true, license_key: k, customer_name: r.customer_name || '', activated_at: r.activated_at || new Date().toISOString(), last_validated_at: new Date().toISOString(), last_error: '' })
     return r
   }
 
   async function validate() {
     const s = readState()
-    if (!s.license_key) return { ok: false, code: 'missing_license', message: 'Licença não ativada.' }
+    if (!s.license_key) return { ok: false, code: 'missing_license', message: 'LicenÃ§a nÃ£o ativada.' }
     const d = getDeviceInfo()
     const r = await supabaseRpc('ghz_validate_license', { p_license_key: s.license_key, p_device_hash: d.device_hash, p_device_name: d.device_name, p_device_os: d.device_os, p_app_version: d.app_version })
-    if (!r?.ok) { saveState({ active: false, last_error: r?.message || 'Licença inválida.' }); return r || { ok: false, message: 'Licença inválida.' } }
+    if (!r?.ok) { saveState({ active: false, last_error: r?.message || 'LicenÃ§a invÃ¡lida.' }); return r || { ok: false, message: 'LicenÃ§a invÃ¡lida.' } }
     saveState({ active: true, customer_name: r.customer_name || s.customer_name || '', last_validated_at: new Date().toISOString(), last_error: '' })
     return r
   }
 
-  // ── UPDATE STATE ────────────────────────────────────────
+  // â”€â”€ UPDATE STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function updateStatePath() { return path.join(getDataDir(), 'update-state.json') }
   function readUpdateState() { try { return JSON.parse(fs.readFileSync(updateStatePath(), 'utf8') || '{}') } catch (e) { return {} } }
   function saveUpdateState(patch) {
@@ -152,7 +152,8 @@ module.exports = function setup(config) {
 
   async function checkUpdate(source) {
     try {
-      const raw = await httpGet(manifestUrl)
+      const bustUrl = manifestUrl + (manifestUrl.includes('?') ? '&' : '?') + '_t=' + Date.now()
+      const raw = await httpGet(bustUrl)
       const m = JSON.parse(raw)
       if (!m.version) throw new Error('Manifesto sem version')
       const current = app.getVersion()
@@ -195,7 +196,7 @@ module.exports = function setup(config) {
 
   async function downloadAndInstall() {
     const r = await checkUpdate('install-precheck')
-    if (!r.update_available || !r.download_url) return { ok: false, message: 'Nenhuma atualização disponível.' }
+    if (!r.update_available || !r.download_url) return { ok: false, message: 'Nenhuma atualizaÃ§Ã£o disponÃ­vel.' }
     const tmpDir = path.join(os.tmpdir(), `${appId}_updates`)
     const fileName = r.download_url.split('/').pop() || `${appId}-setup.exe`
     const dest = path.join(tmpDir, fileName)
@@ -213,7 +214,7 @@ module.exports = function setup(config) {
     checkUpdate('startup-weekly').catch(() => {})
   }
 
-  // ── IPC HANDLERS ────────────────────────────────────────
+  // â”€â”€ IPC HANDLERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ipcMain.handle('license:get-state', async () => ({ ...readState(), cache_valid: cacheValid() }))
   ipcMain.handle('license:device-info', async () => {
     const i = getDeviceInfo()
