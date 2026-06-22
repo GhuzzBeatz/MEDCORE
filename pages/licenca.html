@@ -32,12 +32,13 @@
 if (typeof aplicarTemaAtual === 'function') aplicarTemaAtual()
 
 function fmt(inp) {
-  let v = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, ''), r = ''
-  const p = v.match(/^[A-Z]+/)
-  const prefixLen = p ? Math.min(p[0].length, 6) : 0
+  let v = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const ph = inp.placeholder || ''
+  const prefixLen = ph.indexOf('-') > 0 ? ph.indexOf('-') : 5
   const parts = []
   let pos = 0
-  if (prefixLen > 0) { parts.push(v.slice(0, prefixLen)); pos = prefixLen }
+  if (prefixLen > 0 && v.length > prefixLen) { parts.push(v.slice(0, prefixLen)); pos = prefixLen }
+  else if (v.length <= prefixLen) { parts.push(v); pos = v.length }
   while (pos < v.length) { parts.push(v.slice(pos, pos + 4)); pos += 4 }
   inp.value = parts.join('-')
 }
