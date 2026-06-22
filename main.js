@@ -8,6 +8,9 @@ const { createClient } = require('@supabase/supabase-js')
 
 app.setName('MedCore')
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) app.quit()
+
 const OAUTH_REDIRECT_URL = 'https://medcore.local/auth/callback'
 const DEFAULT_SUPABASE_URL = 'https://cdzbbqaehcrqoernigoc.supabase.co'
 const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkemJicWFlaGNycW9lcm5pZ29jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE2MDIsImV4cCI6MjA4ODE0NzYwMn0.tI_Ru7d4vUySOFef_Q9gUDZNPN0Gnm2tDkVz9LYLosE'
@@ -58,11 +61,27 @@ const CONFIG_META_DELETED_AT = '__sync_deleted_at'
 let win = null
 let painelWin = null
 let oauthWin = null
+let ghzBackend = null
 let supabaseClient = null
 let syncTimer = null
 let syncDebounceTimer = null
 let lastSupabaseConfigSignature = ''
 let isQuittingNow = false
+
+app.on('second-instance', () => {
+  if (!win) return
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+})
+
+function isLicensePageUrl(url) {
+  try { return decodeURIComponent(new URL(url).pathname).replace(/\\/g, '/').endsWith('/pages/licenca.html') } catch (e) { return false }
+}
+
+function loadLicensePage() {
+  if (win && !win.isDestroyed()) win.loadFile('pages/licenca.html').catch(() => {})
+}
 let currentUserCache = { signedIn: false, user: null, expiresAt: 0 }
 let lastDiagnosticsLogAt = 0
 const DEFAULT_TITLEBAR_HEIGHT = 24
@@ -1990,11 +2009,17 @@ function createWindow() {
       nodeIntegrationInSubFrames: true,
       contextIsolation: false,
       webSecurity: false,
+      devTools: !app.isPackaged,
       additionalArguments: ['--data-dir=' + dir]
     }
   })
 
-  win.loadFile('index.html')
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!ghzBackend?.isSessionAuthorized() && !isLicensePageUrl(url)) {
+      event.preventDefault()
+      loadLicensePage()
+    }
+  })
 
   win.once('ready-to-show', () => {
     win.show()
@@ -2487,19 +2512,23 @@ ipcMain.handle('salvar-arquivo', async (event, { conteudo, nomeArquivo, extensao
 })
 
 // ── GHZ LICENSE + AUTO-UPDATE BACKEND ─────────────────────
-require('./js/ghz-backend')({
+ghzBackend = require('./js/ghz-backend')({
   app, ipcMain, getDataDir,
   appId: 'medcore',
   manifestUrl: 'https://raw.githubusercontent.com/GhuzzBeatz/MEDCORE/master/update-manifest.json'
 })
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  if (!gotSingleInstanceLock) return
   const dataDir = getDataDir()
   process.env.MEDCORE_DATA_DIR = dataDir
   ensureDir(dataDir)
   ensureDir(getMetaDir())
   ensureDefaultSupabaseConfig()
   createWindow()
+  await win.loadFile('pages/licenca.html')
+  const result = await ghzBackend.validateForStartup().catch(() => ({ ok: false }))
+  if (result?.ok && win && !win.isDestroyed()) await win.loadFile('index.html')
 })
 
 app.on('before-quit', (event) => {
